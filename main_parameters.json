@@ -1,10 +1,9 @@
 
 {
-  "paths": {"root": "/home/sean/wd/pgm-fmri",
-            "subjects_event": "data/y.npy",
-            "subjects_samples": "data/X.npy",
-            "model_output":"fit"},
-  "number_of_subects": 2,
+  "paths": {"root_dir": "/home/sean/wd/pgm-fmri",
+            "subjects_events_path": "data/y.npy",
+            "subjects_samples_path": "data/X.npy"},
+  "number_of_subjects": 2,
   "subsample": [2,2,2],
   "partitions": {"train": [0,123], "test": [123,246]},
   "transformation": "flatten",
@@ -17,9 +16,11 @@
                     "momentum": 0.9,
                     "agreement_threshold": 0.2, 
                     "scale_grad_inverse_sparsity": 1, 
-                    "method": "sdg-ilc",
+                    "method": "sdg",
                     "l1_coef": 0.2,
                     "l2_coef": 0.2,
                     "drop_last": "False",
-                    "use_cuda":"True"}
+                    "use_cuda":"True",
+                    "model_output":"fit"
+  }
 }

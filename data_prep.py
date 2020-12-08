@@ -7,9 +7,10 @@ import nibabel as nib
 import pandas as pd
 from nilearn.image import mean_img
 import numpy as np
+import torch
 from scipy.io import loadmat
 
-from utils import fmriDatasetAllSubjects
+from utils import *
 
 
 def prepare_data(paths,number_of_subjects,subsample,data_format,partitions):
@@ -19,7 +20,7 @@ def prepare_data(paths,number_of_subjects,subsample,data_format,partitions):
   params:
     - paths: dictionary of paths
     - number_of_subjects: number of subjects used in creating datasets
-    - subsample: (M,M,M) tuple used to subsample the 3D brain image
+    - subsample: [M,M,M] list used to subsample the 3D brain image
     - data_format: str: indicates what file format for the data (npy or nifti)
     - partitions: dictionary of tuples for train and test partitioning
 
@@ -39,7 +40,7 @@ def prepare_data(paths,number_of_subjects,subsample,data_format,partitions):
   test_partition = partitions['test']
   
   number_of_subjects = number_of_subjects
-  subsampler = Subsample(subsample)
+  subsampler = Subsample(subsample[0],subsample[1],subsample[2])
   flat = Flatten()
   
   composed_transform = transforms.Compose([subsampler,flat])
@@ -48,9 +49,9 @@ def prepare_data(paths,number_of_subjects,subsample,data_format,partitions):
   subjects_individual_test_datasets = []
   
   files_paths = []
-  
+  print(train_partition)
   # partition = {'train':list(range(0,91)), 'test':list(range(91,182))}
-  partition = {'train':list(range(train_partition)), 'test':list(range(test_partition)}
+  partition = {'train':list(range(train_partition[0],train_partition[1])), 'test':list(range(test_partition[0],test_partition[1]))}
   
   
   # For having flexibility in defining various train and test partitions when using
@@ -86,7 +87,7 @@ def prepare_data(paths,number_of_subjects,subsample,data_format,partitions):
   
   else:
   
-      events = np.load(subjects_event_paths, encoding='bytes')
+      events = np.load(subjects_events_path, encoding='bytes')
       events[np.where(events == -1)] = 1
       
       labels = dict.fromkeys(['train','test'])
@@ -363,24 +364,25 @@ def collect_data(maindir,task,timepoint,outputdir,N=None):
   return X, y
   
   
-############ test 
-print("Begin data prep: extracting time series to label...")
-
-maindir = '/data/datasets/open-neuro/ds007_R2.0.0/'
-outputdir = '/home/sean/wd/pgm-fmri/data' # relative to maindir
-task='stop'
-timepoint='1'
-
-N=2 # number of subjects to include. If none include all
-
-X, y = collect_data(maindir,task,timepoint,outputdir,N)
-
-print("Saving X and y...")
-
-np.save(os.path.join(outputdir,'X.npy'),X)
-np.save(os.path.join(outputdir,'y.npy'),y)
-
-
-print("Done.")
+if __name__ == "__main__":  
+  ############ test 
+  print("Begin data prep: extracting time series to label...")
+  
+  maindir = '/data/datasets/open-neuro/ds007_R2.0.0/'
+  outputdir = '/home/sean/wd/pgm-fmri/data' # relative to maindir
+  task='stop'
+  timepoint='1'
+  
+  N=2 # number of subjects to include. If none include all
+  
+  X, y = collect_data(maindir,task,timepoint,outputdir,N)
+  
+  print("Saving X and y...")
+  
+  np.save(os.path.join(outputdir,'X.npy'),X)
+  np.save(os.path.join(outputdir,'y.npy'),y)
+  
+  
+  print("Done.")
 
 

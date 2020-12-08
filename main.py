@@ -6,6 +6,8 @@ import json
 import torch
 from models import Net 
 from training import Train, evaluate, accuracy
+from data_prep import prepare_data
+import numpy as np
 
 
 
@@ -27,14 +29,16 @@ if __name__ == "__main__":
                                                 params['data_format'],
                                                 params['partitions']
                                                 )
-  print(f"Train shape: {train_data.shape}, Test shape: {test.shape}")
+  print(f"Train: {train_data}, Test: {test_data}")
   
   
   """ Train """
-  fc_dim = mixed_dataset_train[0][0].shape[0]
+  fc_dim = train_data[0][0].shape[0]
   model = Net(fc_dim)
   
-  trained_model = Train(model,weights,train_data,test_data,params['optimization'])
+  print(f"Optimization parameters: {params['optimization']}")
+  
+  trained_model = Train(model,weights,train_data,test_data,**params['optimization'])
   evaluate(model, test_data, test_labels)
   
   # model.load_state_dict(torch.load(PATH))

@@ -1,5 +1,9 @@
 from torch.utils.data import Dataset, DataLoader
 import torch.optim as optim
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import numpy as np
 
 
 def accuracy(out, labels):
@@ -31,32 +35,33 @@ def evaluate(model, validation_data, validation_labels):
 
 class Train():
   
-  def __init__(self,model,weights,train_data,test_data,device,**kwargs):
+  def __init__(self,model,weights,train_data,test_data,**kwargs):
+
+    self.model = model
+    self.weights = weights
+    self.train_data = train_data
+    self.test_data = test_data
+    
     for key, value in kwargs.items():
       setattr(self, key, value)
+  
+    # CUDA for PyTorch
+    use_cuda = torch.cuda.is_available()
+    device = torch.device("cuda:0" if use_cuda else "cpu")
+    torch.backends.cudnn.benchmark = True
     
-  self.model = model
-  self.weights = weights
-  self.train_data = train_data
-  self.test_data = test_data
+    self.device = device
   
-  # CUDA for PyTorch
-  use_cuda = torch.cuda.is_available()
-  device = torch.device("cuda:0" if self.use_cuda else "cpu")
-  torch.backends.cudnn.benchmark = True
-  
-  self.device = device
-
-  self._train()
+    self._train()
 
   def _train(self):
     
     
     """ Generators """
-    training_generator = DataLoader(self.train_data, batch_size=self.batch_size,shuffle=self.shuffle, num_workers=self.num_workers, drop_last=self.drop_last)
+    training_generator = DataLoader(self.train_data, batch_size=self.batch_size,shuffle=self.shuffle, num_workers=self.num_workers, drop_last=(self.drop_last=='True'))
     #TODO: make an actual validation set
     validation_set = self.test_data # why is num_workers = 0 ? 
-    validation_generator = DataLoader(validation_set, batch_size=self.batch_size, shuffle=self.shuffle, num_workers=self.num_workers, drop_last=self.drop_last)
+    validation_generator = DataLoader(validation_set, batch_size=self.batch_size, shuffle=self.shuffle, num_workers=self.num_workers, drop_last=(self.drop_last=='True'))
     
     """ Instantiate model on device """
     criterion = nn.CrossEntropyLoss(weight = torch.from_numpy(self.weights).float())
@@ -111,7 +116,8 @@ class Train():
                   loss = criterion(outputs, local_labels)
                   total_loss += loss
               print(total_loss)
-      
+              
+      torch.save(self.model.state_dict(), self.model_output)
       print('Finished training with SGD.')
       
   
@@ -182,7 +188,8 @@ class Train():
                   total_loss += loss
                   
               print(total_loss)
-              
+      
+      torch.save(self.model.state_dict(), self.model_output)
       print('Finished training with SGD + ILC.')
               
     
@@ -198,6 +205,4 @@ class Train():
     else:
       print("Select a valid training method (sdg, sdg-reg, sdg-reg-ilc")
       
-  torch.save(self.model.state_dict(), self.model_output)
-  print('Finished Training')
-    
+

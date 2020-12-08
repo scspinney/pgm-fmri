@@ -3,6 +3,8 @@ import os
 from nilearn.image import index_img, smooth_img
 from torchvision import transforms, utils
 import pickle 
+import torch
+from torch.utils.data import Dataset, DataLoader
 
 
 def storeData(object, file_name, root_dir):
