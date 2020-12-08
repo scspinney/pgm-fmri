@@ -2,6 +2,33 @@ from torch.utils.data import Dataset, DataLoader
 import torch.optim as optim
 
 
+def accuracy(out, labels):
+    outputs = np.argmax(out, axis=1)
+    return np.sum(outputs==labels)/float(len(labels))
+
+def evaluate(model, validation_data, validation_labels):
+
+    validation_data = validation_data.to(device)
+
+    out = model(validation_data.float())
+    # print(out.shape)
+    outputs = np.argmax(out.cpu().detach().numpy(), axis=1)
+    # print(outputs)
+    acc = accuracy(out.cpu().detach().numpy(), validation_labels.cpu().detach().numpy())
+    print('Accuracy: ', acc)
+
+    # As mentioned before, data is unbalanced, hence, the accuracy itself is not 
+    # enough for evaluating the performance of the model.
+    # print(outputs,local_labels.cpu().detach().numpy())
+    cm = confusion_matrix(outputs.transpose(), validation_labels.detach().cpu().numpy().transpose())
+    sns.set_theme()
+    plt.figure()
+    ax = sns.heatmap(cm)
+    print('\nConfusion Matrix: ', cm)
+    precision,recall,fscore,_ = precision_recall_fscore_support(validation_labels.cpu(), outputs)
+    print('\nPrecision: ',precision,'\nRecall: ', recall,'\nF-score: ', fscore)
+
+
 class Train():
   
   def __init__(self,model,weights,train_data,test_data,device,**kwargs):
