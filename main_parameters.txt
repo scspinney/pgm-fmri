@@ -20,5 +20,6 @@
                     "method": "sdg-ilc",
                     "l1_coef": 0.2,
                     "l2_coef": 0.2,
-                    "drop_last": False}
+                    "drop_last": False,
+                    "use_cuda":True}
 }

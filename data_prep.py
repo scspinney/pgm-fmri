@@ -9,6 +9,107 @@ from nilearn.image import mean_img
 import numpy as np
 from scipy.io import loadmat
 
+from utils import fmriDatasetAllSubjects
+
+
+def prepare_data(root_dir,subjects_events_path,subjects_samples_path,number_of_subjects,subsample,data_format,train_partition,test_partition):
+  
+  number_of_subjects = number_of_subjects
+  subsampler = Subsample(subsample)
+  flat = Flatten()
+  
+  composed_transform = transforms.Compose([subsampler,flat])
+  
+  subjects_individual_train_datasets = []
+  subjects_individual_test_datasets = []
+  
+  files_paths = []
+  
+  # partition = {'train':list(range(0,91)), 'test':list(range(91,182))}
+  partition = {'train':list(range(train_partition)), 'test':list(range(test_partition)}
+  
+  
+  # For having flexibility in defining various train and test partitions when using
+  # the mixed dataset of all subjects, we may use the list of partitions and labels
+  # as below
+  
+  partitions_mixed = dict.fromkeys(['train','test'])
+  partitions_mixed['train'],partitions_mixed['test'] = [],[]
+  
+  labels_mixed = dict.fromkeys(['train','test'])
+  labels_mixed['train'],labels_mixed['test'] = [],[]
+  
+  for subject in range(number_of_subjects):
+      # one might change the partitions for each subject.
+      partitions_mixed['train'].append(list(range(0,91)))
+      partitions_mixed['test'].append(list(range(91,182)))
+      labels_mixed['train'].append((np.zeros(91)).astype(int))
+      labels_mixed['test'].append((np.zeros(91)).astype(int))
+  
+  if data_format is 'nifti':
+  
+      labels = {'train':(np.zeros(91)).astype(int), 'test':(np.zeros(91)).astype(int)}
+  
+      for subject in range(1,number_of_subjects+1):
+          path = 'sub-0' + str(subject) + '_task-stopsignal_run-01_bold.nii.gz'
+          files_paths.append(path)
+  
+      subjects_individual_train_datasets.append(fmriDatasetSubject(root_dir, path, partition['train'], labels['train'], data_format, composed_transform))
+      subjects_individual_test_datasets.append(fmriDatasetSubject(root_dir, path, partition['test'], labels['test'], data_format, composed_transform))
+  
+      mixed_dataset_train = fmriDatasetAllSubjects(root_dir, files_paths, partitions_mixed['train'], labels_mixed['train'], data_format, composed_transform)
+      mixed_dataset_test = fmriDatasetAllSubjects(root_dir, files_paths,  partitions_mixed['test'], labels_mixed['test'], data_format, composed_transform)
+  
+  else:
+  
+      events = np.load(subjects_event_paths, encoding='bytes')
+      events[np.where(events == -1)] = 1
+      
+      labels = dict.fromkeys(['train','test'])
+      labels['train'],labels['test'] = events[partition['train']],events[partition['test']]
+  
+      mixed_dataset_train = fmriDatasetAllSubjects(root_dir, subjects_samples_path, partition['train'], labels['train'], data_format, composed_transform)
+      mixed_dataset_test = fmriDatasetAllSubjects(root_dir, subjects_samples_path,  partition['test'], labels['test'], data_format, composed_transform)
+  
+  # print(labels)
+  print(getattr(mixed_dataset_train, 'subject_frames').shape)
+  print(mixed_dataset_train[57][0].shape)
+  
+  # print(getattr(b,'subject_frames').shape)
+  print(mixed_dataset_train,mixed_dataset_test)
+  print(getattr(mixed_dataset_train,'subject_frames').shape)
+  print(getattr(mixed_dataset_test,'subject_frames').shape)
+  print(mixed_dataset_train[0][0].shape[0])
+  
+  # How to access these custom datasets
+  # print(subjects_individual_datasets[0][2])
+  # print(mixed_dataset[4])
+  
+  
+  
+  # storeData(subjects_individual_train_datasets, 'subjects_individual_train_datasets', root_dir)
+  # storeData(subjects_individual_test_datasets, 'subjects_individual_test_datasets', root_dir)
+  
+  # storeData(mixed_dataset_train, 'mixed_dataset_train', root_dir)
+  # storeData(mixed_dataset_test, 'mixed_dataset_test', root_dir)
+  
+  
+  mixed_dataset_train = loadData('mixed_dataset_train', root_dir)
+  mixed_dataset_test = loadData('mixed_dataset_test', root_dir)
+  # print((getattr(mixed_dataset_train,'subject_frames').shape[3]))
+  # print(getattr(mixed_dataset_test,'subject_frames').shape)
+  
+  
+  # We weight the training loss by the weight of labels in the training set.
+  Y = getattr(mixed_dataset_train,'labels')
+  weights = [len(np.where(Y == 0)[0]), len(np.where(Y == 1)[0])]/np.max([len(np.where(Y == 0)[0]), len(np.where(Y == 1)[0])])
+  
+  return mixed_dataset_train, mixed_dataset_test, weights
+
+
+
+
+
 def time_to_slice(time_intervals,tr,last_event_tint):
     
     """

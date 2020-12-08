@@ -12,6 +12,12 @@ class Train():
   self.weights = weights
   self.train_data = train_data
   self.test_data = test_data
+  
+  # CUDA for PyTorch
+  use_cuda = torch.cuda.is_available()
+  device = torch.device("cuda:0" if self.use_cuda else "cpu")
+  torch.backends.cudnn.benchmark = True
+  
   self.device = device
 
   self._train()
