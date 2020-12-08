@@ -1,0 +1,24 @@
+{
+  "paths": {"root": "/home/sean/wd/pgm-fmri",
+            "subjects_event": "data/y.npy",
+            "subjects_samples": "data/X.npy",
+            "model_output":"fit"},
+
+  "number_of_subects": 2,
+  "subsample": (2,2,2),
+  "train_test_partitions": {"train": (0,123), "test": (123,246)},
+  "transformation": "flatten",
+  "data_format": "npy",
+  "optimization" : {"batch_size": 16,
+                    "shuffle": True,
+                    "num_workers": 6,
+                    "max_epochs" : 3,
+                    "lr": 0.001,
+                    "momentum": 0.9,
+                    "agreement_threshold": 0.2, 
+                    "scale_grad_inverse_sparsity": 1, 
+                    "method": "sdg-ilc",
+                    "l1_coef": 0.2,
+                    "l2_coef": 0.2,
+                    "drop_last": False}
+}

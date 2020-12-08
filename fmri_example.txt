@@ -1,0 +1,34 @@
+!pip install nilearn
+
+import numpy as np 
+import os
+from nilearn.image import index_img, smooth_img
+
+sub1_path = '/sub-01_task-stopsignal_run-01_bold.nii.gz'
+sub2_path = '/sub-02_task-stopsignal_run-01_bold.nii.gz'
+#sub1_path = '~/Downloads/open-neuro/sub-01/func/sub-01_task-stopsignal_run-01_bold.nii.gz'
+#sub2_path = '~/Downloads/open-neuro/sub-02/func/sub-02_task-stopsignal_run-01_bold.nii.gz'
+
+images = [sub1_path,sub2_path]
+
+# list of NiftiImage objects
+X = []
+
+for index, image_path in enumerate(images):
+    # load image and remove nan and inf values.
+    # applying smooth_img to an image with fwhm=None simply cleans up
+    # non-finite values but otherwise doesn't modify the image.
+    image = smooth_img(image_path, fwhm=None)
+    X.append(image)
+
+print(type(X[0]))
+print(type(X[0].dataobj))
+X[0].shape
+
+numpy_4d_img = X[0].dataobj
+numpy_4d_img.shape 
+
+slice_50 = index_img(X[0], 50) # grab slice number 50 into a 
+slice_50_60 = index_img(X[0], slice(50, 60)) # grab slice number 50 to 60 
+
+slice_50.shape, slice_50_60.shape
