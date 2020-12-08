@@ -129,72 +129,9 @@ fc_dim = mixed_dataset_train[0][0].shape[0]
 # now pass fcdim to the Net class from models.py
 model = Net(fc_dim)
 
-# Parameters
-params = {'batch_size': 16,
-          'shuffle': True,
-          'num_workers': 6}
+######################################################################
 
-max_epochs = 3
 
-# Since the labels are probably unbalanced, cross entropy loss should get the weight parameter
-# criterion = nn.CrossEntropyLoss()
-criterion = nn.CrossEntropyLoss(weight = torch.from_numpy(weights).float())
-
-optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
-
-model.to(device)
-criterion.to(device)
-
-# Generators
-training_set = mixed_dataset_train
-training_generator = DataLoader(training_set, batch_size=32,shuffle=True, num_workers=0, drop_last=False)
-
-validation_set = mixed_dataset_test
-validation_generator = DataLoader(validation_set, batch_size=32, shuffle=True, num_workers=0, drop_last=False)
-
-# Loop over epochs
-for epoch in range(max_epochs):
-    running_loss = 0
-    # Training
-    batch_number = 0
-    for input_batch, input_labels in training_generator:
-        batch_number += 1
-        # Transfer to GPU
-        input_batch, input_labels = input_batch.to(device), input_labels.to(device)
-        # Model computations
-        # zero the parameter gradients
-        optimizer.zero_grad()
-
-        # forward + backward + optimize
-        outputs = model(input_batch.float())
-
-        loss = criterion(outputs, input_labels)
-        loss.backward()
-        optimizer.step()
-
-        # print statistics
-        # running_loss += loss.item()
-        # if i % 10 == 0:    # print every 10 samples
-        #     print('[%d, %5d] loss: %.3f' %
-        #           (epoch + 1, i + 1, running_loss / 2000))
-        #     running_loss = 0.0
-
-    # Validation
-    with torch.set_grad_enabled(False):
-        total_loss = 0
-        for local_batch, local_labels in validation_generator:
-            # Transfer to GPU
-            local_batch, local_labels = local_batch.to(device), local_labels.to(device)
-
-            # Model computations
-            outputs = model(local_batch.float())
-            loss = criterion(outputs, local_labels)
-            total_loss += loss
-        print(total_loss)
-
-print('Finished Training')
-
-torch.save(model.state_dict(), '/content/drive/MyDrive/Mila Fall 2020/Probabilistic Graphical Models/Project/Data/model')
 # model.load_state_dict(torch.load(PATH))
 
 import matplotlib.pyplot as plt

@@ -5,6 +5,19 @@ from torchvision import transforms, utils
 import pickle 
 
 
+def storeData(object, file_name, root_dir):
+    with open(root_dir+file_name, 'wb') as f:
+        pickle.dump(object, f)					 
+        f.close() 
+
+def loadData(file_name, root_dir): 
+    with open(root_dir+file_name, 'rb') as f:
+        db = pickle.load(f) 
+        f.close()
+        return db
+
+
+
 # In case we wanted to do experiments with ILC inter subjects.
 # This class is also good when we want to deal with different runs from the same
 # subject.

@@ -1,3 +1,5 @@
+.gitignore
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -129,12 +131,10 @@ dmypy.json
 .pyre/
 
 # ignore datasets
-/home/sean/wd/pgm-fmri/datasets/open-neuro/* .Rproj.user pgm-fmri.Rproj mat_files_Stop_V1/* license.txt fmri_prep_command.sh Stop_V1.xlsx
-data/*
 
 pgm-fmri.Rproj 
 mat_files_Stop_V1/* 
 license.txt 
 fmri_prep_command.sh 
-Stop_V1.xlsx
+.Rproj.user
 data/*

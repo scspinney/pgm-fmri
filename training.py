@@ -4,7 +4,7 @@ import torch.optim as optim
 
 class Train():
   
-  def __init__(self,model,weights,train_data,test_data,device, **kwargs):
+  def __init__(self,model,weights,train_data,test_data,device,**kwargs):
     for key, value in kwargs.items():
     setattr(self, key, value)
     
@@ -16,12 +16,10 @@ class Train():
 
   self._train()
 
-
   def _train(self):
     
     
     """ Generators """
-    training_set = mixed_dataset_train
     training_generator = DataLoader(self.train_data, batch_size=self.batch_size,shuffle=self.shuffle, num_workers=self.num_workers, drop_last=self.drop_last)
     #TODO: make an actual validation set
     validation_set = self.test_data # why is num_workers = 0 ? 
@@ -152,6 +150,8 @@ class Train():
                   
               print(total_loss)
               
+      print('Finished training with SGD + ILC.')
+              
     
     if self.method == 'sdg': 
       return optimize_sdg()
@@ -164,6 +164,7 @@ class Train():
       
     else:
       print("Select a valid training method (sdg, sdg-reg, sdg-reg-ilc")
-  
+      
+  torch.save(self.model.state_dict(), self.model_output)
   print('Finished Training')
     
