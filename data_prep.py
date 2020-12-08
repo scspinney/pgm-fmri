@@ -12,7 +12,31 @@ from scipy.io import loadmat
 from utils import fmriDatasetAllSubjects
 
 
-def prepare_data(root_dir,subjects_events_path,subjects_samples_path,number_of_subjects,subsample,data_format,train_partition,test_partition):
+def prepare_data(paths,number_of_subjects,subsample,data_format,partitions):
+  """
+  Prepares an preprocessed fmri dataset into a train/test split.
+  
+  params:
+    - paths: dictionary of paths
+    - number_of_subjects: number of subjects used in creating datasets
+    - subsample: (M,M,M) tuple used to subsample the 3D brain image
+    - data_format: str: indicates what file format for the data (npy or nifti)
+    - partitions: dictionary of tuples for train and test partitioning
+
+  
+  returns: weights: 
+           training set: 
+           test set:
+  """
+  
+  # set paths
+  root_dir = paths['root_dir']
+  subjects_events_path = paths['subjects_events_path']
+  subjects_samples_path = paths['subjects_samples_path']
+  
+  # get partitions
+  train_partition = partitions['train']
+  test_partition = partitions['test']
   
   number_of_subjects = number_of_subjects
   subsampler = Subsample(subsample)
@@ -81,32 +105,11 @@ def prepare_data(root_dir,subjects_events_path,subjects_samples_path,number_of_s
   print(getattr(mixed_dataset_test,'subject_frames').shape)
   print(mixed_dataset_train[0][0].shape[0])
   
-  # How to access these custom datasets
-  # print(subjects_individual_datasets[0][2])
-  # print(mixed_dataset[4])
-  
-  
-  
-  # storeData(subjects_individual_train_datasets, 'subjects_individual_train_datasets', root_dir)
-  # storeData(subjects_individual_test_datasets, 'subjects_individual_test_datasets', root_dir)
-  
-  # storeData(mixed_dataset_train, 'mixed_dataset_train', root_dir)
-  # storeData(mixed_dataset_test, 'mixed_dataset_test', root_dir)
-  
-  
-  mixed_dataset_train = loadData('mixed_dataset_train', root_dir)
-  mixed_dataset_test = loadData('mixed_dataset_test', root_dir)
-  # print((getattr(mixed_dataset_train,'subject_frames').shape[3]))
-  # print(getattr(mixed_dataset_test,'subject_frames').shape)
-  
-  
   # We weight the training loss by the weight of labels in the training set.
   Y = getattr(mixed_dataset_train,'labels')
   weights = [len(np.where(Y == 0)[0]), len(np.where(Y == 1)[0])]/np.max([len(np.where(Y == 0)[0]), len(np.where(Y == 1)[0])])
   
   return mixed_dataset_train, mixed_dataset_test, weights
-
-
 
 
 
