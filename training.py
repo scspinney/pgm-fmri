@@ -33,7 +33,7 @@ class Train():
   
   def __init__(self,model,weights,train_data,test_data,device,**kwargs):
     for key, value in kwargs.items():
-    setattr(self, key, value)
+      setattr(self, key, value)
     
   self.model = model
   self.weights = weights

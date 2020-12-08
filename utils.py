@@ -55,9 +55,6 @@ class fmriDatasetAllSubjects(Dataset):
                 self.path = os.path.join(self.root_dir, image_path)
                 image = smooth_img(self.path, fwhm=None)
                 X.append(image)
-
-            
-
             
             self.subject_frames = np.concatenate([X[i].get_fdata()[:,:,:,list_of_partitions[i]] for i in range(self.number_of_subjects)], axis=3)
 

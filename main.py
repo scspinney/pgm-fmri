@@ -12,21 +12,22 @@ from training import Train, evaluate, accuracy
 if __name__ == "__main__":
     
   """ Read in parameters """
-  params_file = 'main_parameters.json'
-  params = json.loads(params_file)
-  
+  with open('main_parameters.json') as jsonfile:
+    params = json.load(jsonfile)
+
   print(f"Parameters used in training: {params}")
   
   
   """ Get datasets and weights for optimization """
   
   train_data, test_data, weights =  prepare_data(
-                                                params['paths']
+                                                params['paths'],
                                                 params['number_of_subjects'],
                                                 params['subsample'],
                                                 params['data_format'],
                                                 params['partitions']
                                                 )
+  print(f"Train shape: {train_data.shape}, Test shape: {test.shape}")
   
   
   """ Train """
@@ -38,9 +39,9 @@ if __name__ == "__main__":
   
   # model.load_state_dict(torch.load(PATH))
   
-  test_gen = torch.utils.data.DataLoader(test_data, batch_size=test_data.__len__(), shuffle=False)
-  for test_data, test_labels in test_gen:
-      pass
+  # test_gen = torch.utils.data.DataLoader(test_data, batch_size=test_data.__len__(), shuffle=False)
+  # for test_data, test_labels in test_gen:
+  #     pass
       # print(test_data.shape, test_labels.shape)
   
   # print(test_data.shape, test_labels.shape)
