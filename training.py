@@ -6,6 +6,10 @@ import torch.nn.functional as F
 import numpy as np
 import gc 
 import os
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.metrics import confusion_matrix
+from sklearn.metrics import precision_recall_fscore_support
 
 
 def accuracy(out, labels):
@@ -164,10 +168,10 @@ class Train():
   def _train(self):
     
     """ Generators """
-    training_generator = DataLoader(self.train_data, batch_size=self.batch_size,shuffle=self.shuffle, num_workers=self.num_workers, drop_last=(self.drop_last=='True'))
+    training_generator = DataLoader(self.train_data, batch_size=self.batch_size,shuffle=(self.shuffle=="True"), num_workers=self.num_workers, drop_last=(self.drop_last=='True'))
     #TODO: make an actual validation set
     validation_set = self.test_data # why is num_workers = 0 ? 
-    validation_generator = DataLoader(validation_set, batch_size=self.batch_size, shuffle=self.shuffle, num_workers=self.num_workers, drop_last=(self.drop_last=='True'))
+    validation_generator = DataLoader(validation_set, batch_size=self.batch_size, shuffle=(self.shuffle=="True"), num_workers=self.num_workers, drop_last=(self.drop_last=='True'))
     
     """ Instantiate model on device """
     criterion = nn.CrossEntropyLoss(weight = torch.from_numpy(self.weights).float())

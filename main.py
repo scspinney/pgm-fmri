@@ -36,9 +36,15 @@ if __name__ == "__main__":
   
   print(f"Optimization parameters: {params['optimization']}")
   
+  
   trained_model = Train(model,weights,train_data,test_data,**params['optimization'])
   print(trained_model)
-  evaluate(trained_model, test_data.subject_frames, test_data.labels)
+  
+  
+  test_gen = torch.utils.data.DataLoader(test_data, batch_size=test_data.__len__(), shuffle=False)
+  
+  for test_data, test_labels in test_gen:
+    evaluate(trained_model, test_data, test_labels)
   
   # model.load_state_dict(torch.load(PATH))
   

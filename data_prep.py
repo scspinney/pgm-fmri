@@ -64,12 +64,12 @@ def prepare_data(paths,number_of_subjects,subsample,data_format,partitions):
   labels_mixed = dict.fromkeys(['train','test'])
   labels_mixed['train'],labels_mixed['test'] = [],[]
   
-  for subject in range(number_of_subjects):
-      # one might change the partitions for each subject.
-      partitions_mixed['train'].append(list(range(0,91)))
-      partitions_mixed['test'].append(list(range(91,182)))
-      labels_mixed['train'].append((np.zeros(91)).astype(int))
-      labels_mixed['test'].append((np.zeros(91)).astype(int))
+  # for subject in range(number_of_subjects):
+  #     # one might change the partitions for each subject.
+  #     partitions_mixed['train'].append(list(range(0,91)))
+  #     partitions_mixed['test'].append(list(range(91,182)))
+  #     labels_mixed['train'].append((np.zeros(91)).astype(int))
+  #     labels_mixed['test'].append((np.zeros(91)).astype(int))
   
   if data_format is 'nifti':
   
