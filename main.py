@@ -29,9 +29,7 @@ if __name__ == "__main__":
                                                 params['data_format'],
                                                 params['partitions']
                                                 )
-  print(f"Train: {train_data}, Test: {test_data}")
-  
-  
+
   """ Train """
   fc_dim = train_data[0][0].shape[0]
   model = Net(fc_dim)
@@ -39,7 +37,8 @@ if __name__ == "__main__":
   print(f"Optimization parameters: {params['optimization']}")
   
   trained_model = Train(model,weights,train_data,test_data,**params['optimization'])
-  evaluate(model, test_data, test_labels)
+  print(trained_model)
+  #evaluate(trained_model.model, test_data.subject_frames, test_data.labels)
   
   # model.load_state_dict(torch.load(PATH))
   

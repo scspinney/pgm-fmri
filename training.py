@@ -4,6 +4,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
+import gc 
+import os
 
 
 def accuracy(out, labels):
@@ -47,15 +49,17 @@ class Train():
   
     # CUDA for PyTorch
     use_cuda = torch.cuda.is_available()
-    device = torch.device("cuda:0" if use_cuda else "cpu")
+    device = torch.device("cuda:0" if use_cuda == 'True' else "cpu")
     torch.backends.cudnn.benchmark = True
     
     self.device = device
+    
+    print(f"Training using device: {device}")
+    print(f"X shape: {train_data.subject_frames.shape}, y shape: {train_data.labels.shape}")
   
     self._train()
 
   def _train(self):
-    
     
     """ Generators """
     training_generator = DataLoader(self.train_data, batch_size=self.batch_size,shuffle=self.shuffle, num_workers=self.num_workers, drop_last=(self.drop_last=='True'))
@@ -77,6 +81,7 @@ class Train():
       """ Training """
       # Loop over epochs
       for epoch in range(self.max_epochs):
+          print(f"Epoch: {epoch}")
           running_loss = 0
           batch_number = 0
           
@@ -92,10 +97,10 @@ class Train():
       
               # forward + backward + optimize
               outputs = self.model(input_batch.float())
-      
               loss = criterion(outputs, input_labels)
               loss.backward()
               optimizer.step()
+              print(f"training loss: {loss}")
       
               # print statistics
               # running_loss += loss.item()
@@ -109,15 +114,15 @@ class Train():
               total_loss = 0
               for local_batch, local_labels in validation_generator:
                   # Transfer to GPU
-                  local_batch, local_labels = local_batch.to(device), local_labels.to(device)
+                  local_batch, local_labels = local_batch.to(self.device), local_labels.to(self.device)
       
                   # Model computations
                   outputs = self.model(local_batch.float())
                   loss = criterion(outputs, local_labels)
                   total_loss += loss
-              print(total_loss)
+              print(f"total validation: {total_loss}")
               
-      torch.save(self.model.state_dict(), self.model_output)
+      torch.save(self.model.state_dict(), os.path.join(self.model_output, 'model-sdg.pt'))
       print('Finished training with SGD.')
       
   
@@ -188,8 +193,12 @@ class Train():
                   total_loss += loss
                   
               print(total_loss)
+          
+          #TODO: resolve the memory problem
+          gc.collect()
+          torch.cuda.empty_cache()
       
-      torch.save(self.model.state_dict(), self.model_output)
+      torch.save(self.model.state_dict(), os.path.join(self.model_output, 'model-sdg-reg-ilc.pt'))
       print('Finished training with SGD + ILC.')
               
     
