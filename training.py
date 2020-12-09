@@ -149,7 +149,7 @@ class Train():
   
     # CUDA for PyTorch
     use_cuda = torch.cuda.is_available()
-    device = torch.device("cuda:0" if use_cuda == 'True' else "cpu")
+    device = torch.device("cuda:0" if use_cuda else "cpu")
     torch.backends.cudnn.benchmark = True
     
     self.device = device
@@ -240,7 +240,7 @@ class Train():
         for param in self.model.parameters():
             reg_loss += l1_crit(param.to(self.device), torch.from_numpy(np.zeros(param.shape)).to(self.device))
 
-        return self.l1_coeff * reg_loss
+        return self.l1_coef * reg_loss
 
     def optimize_sdg_reg():
 
