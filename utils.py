@@ -6,6 +6,11 @@ import pickle
 import torch
 from torch.utils.data import Dataset, DataLoader
 
+import haiku as hk
+import jax
+import jax.numpy as jnp
+import numpy as np
+import optax
 
 def storeData(object, file_name, root_dir):
     with open(root_dir+file_name, 'wb') as f:
