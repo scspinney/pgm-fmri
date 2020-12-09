@@ -373,7 +373,7 @@ if __name__ == "__main__":
   task='stop'
   timepoint='1'
   
-  N=2 # number of subjects to include. If none include all
+  N=20 # number of subjects to include. If none include all
   
   X, y = collect_data(maindir,task,timepoint,outputdir,N)
   
