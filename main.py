@@ -38,8 +38,7 @@ if __name__ == "__main__":
   
   
   trained_model = Train(model,weights,train_data,test_data,**params['optimization'])
-  print(trained_model)
-  
+  print(trained_model.model)
   
   test_gen = torch.utils.data.DataLoader(test_data, batch_size=test_data.__len__(), shuffle=False)
   
@@ -47,13 +46,7 @@ if __name__ == "__main__":
     evaluate(trained_model, test_data, test_labels)
   
   # model.load_state_dict(torch.load(PATH))
-  
-  # test_gen = torch.utils.data.DataLoader(test_data, batch_size=test_data.__len__(), shuffle=False)
-  # for test_data, test_labels in test_gen:
-  #     pass
-      # print(test_data.shape, test_labels.shape)
-  
-  # print(test_data.shape, test_labels.shape)
+
 
 
 

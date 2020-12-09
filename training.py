@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.metrics import confusion_matrix
 from sklearn.metrics import precision_recall_fscore_support
+from collections import Counter
 
 
 def accuracy(out, labels):
@@ -176,6 +177,8 @@ class Train():
     self._train()
 
   def _train(self):
+    
+    print(Counter(self.train_data.labels))
     
     """ Generators """
     training_generator = DataLoader(self.train_data, batch_size=self.batch_size,shuffle=(self.shuffle=="True"), num_workers=self.num_workers, drop_last=(self.drop_last=='True'))

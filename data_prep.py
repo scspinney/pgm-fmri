@@ -328,12 +328,12 @@ def collect_data(maindir,task,timepoint,outputdir,N=None):
   fmri_files_path = os.path.join(maindir,'derivatives2/fmriprep')
   event_files_path = fmri_files_path
   
-  fmri_files = glob.glob(os.path.join(fmri_files_path,f'sub**','func','sub-*_task-stopmanual_run-1_space-MNI152NLin2009cAsym_desc-preproc_bold.nii.gz'))
+  fmri_files = glob.glob(os.path.join(fmri_files_path,f'sub**','func','sub-*_task-stopmanual_run-1_space-MNI152NLin2009cAsym_desc-brain_mask.nii.gz'))
   
   if N != None:
     fmri_files = fmri_files[:N]
   
-   
+  print(fmri_files) 
   list_of_X = []
   list_of_y = []
   n_sub = len(fmri_files)
@@ -352,7 +352,7 @@ def collect_data(maindir,task,timepoint,outputdir,N=None):
       y, X = extract_time_series_openneuro(fmri_path,event_timing_path,raw_4d_info_path)
     except Exception as e:
       #TODO: fix
-      print("Missing raw json file, skipping subject for now.")
+      print(f"Missing raw json file, skipping subject for now: {e}")
       continue
     
     list_of_X.append(X)
@@ -381,7 +381,7 @@ if __name__ == "__main__":
   task='stop'
   timepoint='1'
   
-  N=20 # number of subjects to include. If none include all
+  N=10 # number of subjects to include. If none include all
   
   X, y = collect_data(maindir,task,timepoint,outputdir,N)
   
