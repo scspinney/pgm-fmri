@@ -38,7 +38,7 @@ if __name__ == "__main__":
   
   trained_model = Train(model,weights,train_data,test_data,**params['optimization'])
   print(trained_model)
-  #evaluate(trained_model.model, test_data.subject_frames, test_data.labels)
+  evaluate(trained_model, test_data.subject_frames, test_data.labels)
   
   # model.load_state_dict(torch.load(PATH))
   

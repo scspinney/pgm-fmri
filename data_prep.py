@@ -147,11 +147,11 @@ def time_to_slice(time_intervals,tr,last_event_tint):
           
           if upper_event_time <= upper_scan_time: # if event is contained inside a single scan
             slice_nums.append([slice_num])
-            print(f"event in time window: {(lower_event_time,upper_event_time)} is in scan interval: {(lower_scan_time,upper_scan_time)} -> slice# {slice_num}")
+            #print(f"event in time window: {(lower_event_time,upper_event_time)} is in scan interval: {(lower_scan_time,upper_scan_time)} -> slice# {slice_num}")
             
           elif upper_event_time > upper_scan_time: # event overlaps with two slices
             slice_nums.append([slice_num,slice_num+1])
-            print(f"event in time window: {(lower_event_time,upper_event_time)} is in scan intervals: {((lower_scan_time,upper_scan_time),(upper_scan_time,upper_scan_time+tr))} -> slice# {(slice_num,slice_num+1)}")
+           # print(f"event in time window: {(lower_event_time,upper_event_time)} is in scan intervals: {((lower_scan_time,upper_scan_time),(upper_scan_time,upper_scan_time+tr))} -> slice# {(slice_num,slice_num+1)}")
         
           break # we found the correct scans, move on to the next event
     
@@ -180,9 +180,11 @@ def extract_time_series_openneuro(fmri_path,event_timing_path,raw_4d_info_path):
   # 1. the number of slices and 2. the TR timing
   #and get TR: http://mriquestions.com/tr-and-te.html
 
+
   # read 4d run info
   with open(raw_4d_info_path) as f:
     info = json.load(f)
+
   
   tr = info['RepetitionTime']
 
@@ -242,7 +244,7 @@ def extract_time_series_openneuro(fmri_path,event_timing_path,raw_4d_info_path):
 
 
 
-# def extract_time_series(fmri_path,event_timing_path,raw_4d_info_path):
+# def extract_time_series_neuroventure(fmri_path,event_timing_path,raw_4d_info_path):
 #   
 #   """ 
 #      - all time is in ms
@@ -334,11 +336,11 @@ def collect_data(maindir,task,timepoint,outputdir,N=None):
    
   list_of_X = []
   list_of_y = []
-  
-  for fmri_path in fmri_files:
+  n_sub = len(fmri_files)
+  for n,fmri_path in enumerate(fmri_files):
     subject = os.path.dirname(fmri_path).split('/')[-2]
     
-    print(f"Processing subject {subject}")
+    print(f"Processing subject {subject}, Progress = {100*(n+1)/n_sub}%")
     
     event_timing_path = os.path.join(maindir,subject,'func',f'{subject}_task-stopmanual_run-1_events.tsv')
     raw_4d_info_path = os.path.join(maindir,subject,'func',f'{subject}_task-stopmanual_run-1_bold.json')
@@ -346,7 +348,13 @@ def collect_data(maindir,task,timepoint,outputdir,N=None):
     #raw_4d_file = os.path.join('/data/neuroventure/raw/task_fmri/{task}/V{timepoint}/{subject[-3:]}{task.capitalize()}.nii')
     
     # append the data from one subject
-    y, X = extract_time_series_openneuro(fmri_path,event_timing_path,raw_4d_info_path)
+    try:
+      y, X = extract_time_series_openneuro(fmri_path,event_timing_path,raw_4d_info_path)
+    except Exception as e:
+      #TODO: fix
+      print("Missing raw json file, skipping subject for now.")
+      continue
+    
     list_of_X.append(X)
     list_of_y.append(y)
     

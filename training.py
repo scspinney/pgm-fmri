@@ -181,7 +181,7 @@ class Train():
       """ Training """
       # Loop over epochs
       for epoch in range(self.max_epochs):
-          print(f"Epoch: {epoch}")
+          
           running_loss = 0
           batch_number = 0
           
@@ -200,14 +200,12 @@ class Train():
               loss = criterion(outputs, input_labels)
               loss.backward()
               optimizer.step()
-              print(f"training loss: {loss}")
-      
-              # print statistics
-              # running_loss += loss.item()
-              # if i % 10 == 0:    # print every 10 samples
-              #     print('[%d, %5d] loss: %.3f' %
-              #           (epoch + 1, i + 1, running_loss / 2000))
-              #     running_loss = 0.0
+              
+              running_loss += loss.item()
+              if batch_number % 10 == 0:    # print every 10 samples
+                  print('[%d, %5d] loss: %.3f' %
+                        (epoch + 1, batch_number + 1, running_loss / 2000))
+                  running_loss = 0.0
       
           # Validation
           with torch.set_grad_enabled(False):
@@ -274,11 +272,11 @@ class Train():
               optimizer.step()
       
               # print statistics
-              # running_loss += loss.item()
-              # if i % 10 == 0:    # print every 10 samples
-              #     print('[%d, %5d] loss: %.3f' %
-              #           (epoch + 1, i + 1, running_loss / 2000))
-              #     running_loss = 0.0
+              running_loss += loss.item()
+              if batch_number % 10 == 0:    # print every 10 samples
+                  print('[%d, %5d] loss: %.3f' %
+                        (epoch + 1, batch_number + 1, running_loss / 2000))
+                  running_loss = 0.0
       
           # Validation
           with torch.set_grad_enabled(False):
