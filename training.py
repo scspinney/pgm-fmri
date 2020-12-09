@@ -371,11 +371,12 @@ class Train():
 
     ### Model definition in JAX
     """
-
+    
+    agreement_threshold = self.agreement_threshold
     class ANDMaskState(optax.OptState):
       """Stateless.""" # Following optax code style
 
-    def and_mask(self.agreement_threshold: float) -> optax.GradientTransformation:
+    def and_mask(agreement_threshold: float) -> optax.GradientTransformation:
       def init_fn(_):
         # Required by optax
         return ANDMaskState()
@@ -383,7 +384,7 @@ class Train():
       def update_fn(updates, opt_state, params=None):
         def and_mask(update):
           # Compute the masked gradients for a single parameter tensor
-          mask = jnp.abs(jnp.mean(jnp.sign(update), 0)) >= self.agreement_threshold
+          mask = jnp.abs(jnp.mean(jnp.sign(update), 0)) >= agreement_threshold
           mask = mask.astype(jnp.float32)
           avg_update = jnp.mean(update, 0)
           mask_t = mask.sum() / mask.size
