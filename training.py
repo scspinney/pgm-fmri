@@ -154,8 +154,18 @@ class Train():
       setattr(self, key, value)
   
     # CUDA for PyTorch
-    use_cuda = torch.cuda.is_available()
-    device = torch.device("cuda:0" if use_cuda else "cpu")
+    
+    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    print('Using device:', device)
+    #Additional Info when using cuda
+    if device.type == 'cuda':
+      print(torch.cuda.get_device_name(0))
+      print('Memory Usage:')
+      print('Allocated:', round(torch.cuda.memory_allocated(0)/1024**3,1), 'GB')
+      print('Cached:   ', round(torch.cuda.memory_reserved(0)/1024**3,1), 'GB')
+    
+    # use_cuda = torch.cuda.is_available()
+    # device = torch.device("cuda:0" if use_cuda else "cpu")
     torch.backends.cudnn.benchmark = True
     
     self.device = device
@@ -187,7 +197,7 @@ class Train():
       """ Training """
       # Loop over epochs
       for epoch in range(self.max_epochs):
-          
+          print(f"Epoch: {epoch}")
           running_loss = 0
           batch_number = 0
           
@@ -206,12 +216,14 @@ class Train():
               loss = criterion(outputs, input_labels)
               loss.backward()
               optimizer.step()
-              
-              running_loss += loss.item()
-              if batch_number % 10 == 0:    # print every 10 samples
-                  print('[%d, %5d] loss: %.3f' %
-                        (epoch + 1, batch_number + 1, running_loss / 2000))
-                  running_loss = 0.0
+              print(f"training loss: {loss}")
+      
+              # print statistics
+              # running_loss += loss.item()
+              # if i % 10 == 0:    # print every 10 samples
+              #     print('[%d, %5d] loss: %.3f' %
+              #           (epoch + 1, i + 1, running_loss / 2000))
+              #     running_loss = 0.0
       
           # Validation
           with torch.set_grad_enabled(False):
@@ -228,6 +240,68 @@ class Train():
               
       torch.save(self.model.state_dict(), os.path.join(self.model_output, 'model-sdg.pt'))
       print('Finished training with SGD.')
+
+#####################################   
+    # Sean, where do you input self.l1_coeff? Also self.l2_coeff (weight decay parameter of the optimizer)? In the kwargs?
+    def l1_loss():
+        l1_crit = nn.L1Loss(reduction='sum')
+        reg_loss = 0
+        for param in self.model.parameters():
+            reg_loss += l1_crit(param.to(self.device), torch.from_numpy(np.zeros(param.shape)).to(self.device))
+
+        return self.l1_coef * reg_loss
+
+    def optimize_sdg_reg():
+
+        print("Begin training with Regularized SGD...")
+
+        """ Training """
+        # Loop over epochs
+        for epoch in range(self.max_epochs):
+            print(f"Epoch: {epoch}")
+            running_loss = 0
+            batch_number = 0
+
+            # Begin
+            for input_batch, input_labels in training_generator:
+
+                batch_number += 1
+                # Transfer to GPU
+                input_batch, input_labels = input_batch.to(self.device), input_labels.to(self.device)
+                # Model computations
+                # zero the parameter gradients
+                optimizer.zero_grad()
+
+                # forward + backward + optimize
+                outputs = self.model(input_batch.float())
+                loss = criterion(outputs, input_labels) + l1_loss()
+                loss.backward()
+                optimizer.step()
+                print(f"training loss: {loss}")
+
+                # print statistics
+                # running_loss += loss.item()
+                # if i % 10 == 0:    # print every 10 samples
+                #     print('[%d, %5d] loss: %.3f' %
+                #           (epoch + 1, i + 1, running_loss / 2000))
+                #     running_loss = 0.0
+
+            # Validation
+            with torch.set_grad_enabled(False):
+                total_loss = 0
+                for local_batch, local_labels in validation_generator:
+                    # Transfer to GPU
+                    local_batch, local_labels = local_batch.to(self.device), local_labels.to(self.device)
+
+                    # Model computations
+                    outputs = self.model(local_batch.float())
+                    loss = criterion(outputs, local_labels)
+                    total_loss += loss + l1_loss()
+                print(f"total validation: {total_loss}")
+
+        torch.save(self.model.state_dict(), os.path.join(self.model_output, 'model-sdg-reg.pt'))
+        print('Finished training with SGD-REG.')
+
       
   
     def optimize_sdg_reg_ilc():
