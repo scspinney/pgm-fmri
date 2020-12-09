@@ -1,3 +1,5 @@
+.gitignore
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -127,3 +129,12 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# ignore datasets
+
+pgm-fmri.Rproj 
+mat_files_Stop_V1/* 
+license.txt 
+fmri_prep_command.sh 
+.Rproj.user
+data/*
