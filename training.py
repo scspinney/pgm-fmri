@@ -169,7 +169,14 @@ class Train():
     
     """ Instantiate model on device """
     criterion = nn.CrossEntropyLoss(weight = torch.from_numpy(self.weights).float())
-    optimizer = optim.SGD(self.model.parameters(), lr=self.lr, momentum=self.momentum)
+    ##########################
+    if self.method == 'sdg-reg': 
+        optimizer = optim.SGD(self.model.parameters(), lr=self.lr, momentum=self.momentum, weight_decay=self.l2_coef)
+    else:
+        optimizer = optim.SGD(self.model.parameters(), lr=self.lr, momentum=self.momentum)
+    ##########################
+    # optimizer = optim.SGD(self.model.parameters(), lr=self.lr, momentum=self.momentum)
+    
     self.model.to(self.device)
     criterion.to(self.device)
     
