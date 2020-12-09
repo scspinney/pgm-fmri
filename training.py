@@ -12,8 +12,10 @@ def accuracy(out, labels):
     outputs = np.argmax(out, axis=1)
     return np.sum(outputs==labels)/float(len(labels))
 
-def evaluate(model, validation_data, validation_labels):
+def evaluate(model_obj, validation_data, validation_labels):
 
+    model = model_obj.model
+    device = model_obj.device
     validation_data = validation_data.to(device)
 
     out = model(validation_data.float())
@@ -149,7 +151,7 @@ class Train():
   
     # CUDA for PyTorch
     use_cuda = torch.cuda.is_available()
-    device = torch.device("cuda:0" if use_cuda == 'True' else "cpu")
+    device = torch.device("cuda:0" if use_cuda else "cpu")
     torch.backends.cudnn.benchmark = True
     
     self.device = device
@@ -249,7 +251,7 @@ class Train():
                   # n_agreement_envs equal to batch size
                   mean_loss, masks = get_grads(
                       agreement_threshold=self.agreement_threshold,
-                      batch_size=self.batch_size,
+                      batch_size=1,
                       loss_fn=criterion,
                       n_agreement_envs=len(input_labels),
                       params=optimizer.param_groups[0]['params'],
@@ -272,7 +274,7 @@ class Train():
               optimizer.step()
       
               # print statistics
-              running_loss += loss.item()
+              running_loss += mean_loss.item()
               if batch_number % 10 == 0:    # print every 10 samples
                   print('[%d, %5d] loss: %.3f' %
                         (epoch + 1, batch_number + 1, running_loss / 2000))
