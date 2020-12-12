@@ -1,26 +1,24 @@
 import numpy as np 
 import os
-from nilearn.image import index_img, smooth_img
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.data import Dataset, DataLoader
-
 from torchvision import transforms, utils
 
-import pickle 
-
-import numpy.random as npr
-
+from typing import Any, Generator, Mapping, Tuple
+from absl import app
+import haiku as hk
 import jax
 import jax.numpy as jnp
-from jax import jit, grad, vmap
+import numpy as np
 import optax
+import tensorflow_datasets as tfds
+import numpy.random as npr
+from jax import jit, grad, vmap
 
 
-import haiku as hk
 
 
 
@@ -55,15 +53,6 @@ def and_mask(agreement_threshold: float) -> optax.GradientTransformation:
 
 """MNIST classifier example."""
 
-from typing import Any, Generator, Mapping, Tuple
-
-from absl import app
-import haiku as hk
-import jax
-import jax.numpy as jnp
-import numpy as np
-import optax
-import tensorflow_datasets as tfds
 
 OptState = Any
 Batch = Mapping[str, np.ndarray]
@@ -183,13 +172,7 @@ for step in range(10001):
     params, opt_state = update(params, opt_state, next(train))
     avg_params = ema_update(avg_params, params)
 
-mixed_dataset_train
-
-# Make datasets.
-train = load_dataset("train", is_training=True, batch_size=1000)
-train_eval = load_dataset("train", is_training=False, batch_size=10000)
-test_eval = load_dataset("test", is_training=False, batch_size=10000)
-
+#################### Evaluation #########################
 
 import matplotlib.pyplot as plt
 import seaborn as sns
