@@ -219,14 +219,9 @@ class Train():
               loss = criterion(outputs, input_labels)
               loss.backward()
               optimizer.step()
-              print(f"training loss: {loss}")
-      
-              # print statistics
-              # running_loss += loss.item()
-              # if i % 10 == 0:    # print every 10 samples
-              #     print('[%d, %5d] loss: %.3f' %
-              #           (epoch + 1, i + 1, running_loss / 2000))
-              #     running_loss = 0.0
+
+              if batch_number % 10 == 0:    # print every 10 samples
+                print(f"training loss: {loss}")
       
           # Validation
           with torch.set_grad_enabled(False):
@@ -280,11 +275,12 @@ class Train():
                 loss = criterion(outputs, input_labels) + l1_loss()
                 loss.backward()
                 optimizer.step()
-                print(f"training loss: {loss}")
+                
 
                 # print statistics
                 # running_loss += loss.item()
-                # if i % 10 == 0:    # print every 10 samples
+                if batch_number % 10 == 0:    # print every 10 samples
+                  print(f"training loss: {loss}")
                 #     print('[%d, %5d] loss: %.3f' %
                 #           (epoch + 1, i + 1, running_loss / 2000))
                 #     running_loss = 0.0

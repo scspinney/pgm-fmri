@@ -4,7 +4,7 @@ from sklearn.metrics import confusion_matrix
 from sklearn.metrics import precision_recall_fscore_support
 import json
 import torch
-from models import Net 
+from models import Net, LogisticRegression
 from training import Train, evaluate, accuracy
 from data_prep import prepare_data
 import numpy as np
@@ -29,10 +29,14 @@ if __name__ == "__main__":
                                                 params['data_format'],
                                                 params['partitions']
                                                 )
+  from collections import Counter                                              
+  print(Counter(test_data.labels))
+  
 
   """ Train """
   fc_dim = train_data[0][0].shape[0]
-  model = Net(fc_dim)
+  #model = Net(fc_dim)
+  model = LogisticRegression(fc_dim)
   
   print(f"Optimization parameters: {params['optimization']}")
   

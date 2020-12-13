@@ -328,7 +328,7 @@ def collect_data(maindir,task,timepoint,outputdir,N=None):
   fmri_files_path = os.path.join(maindir,'derivatives2/fmriprep')
   event_files_path = fmri_files_path
   
-  fmri_files = glob.glob(os.path.join(fmri_files_path,f'sub**','func','sub-*_task-stopmanual_run-1_space-MNI152NLin2009cAsym_desc-brain_mask.nii.gz'))
+  fmri_files = glob.glob(os.path.join(fmri_files_path,f'sub**','func','sub-*_task-stopmanual_run-1_space-MNI152NLin2009cAsym_desc-preproc_bold.nii.gz'))
   
   if N != None:
     fmri_files = fmri_files[:N]
@@ -381,7 +381,7 @@ if __name__ == "__main__":
   task='stop'
   timepoint='1'
   
-  N=10 # number of subjects to include. If none include all
+  N=20 # number of subjects to include. If none include all
   
   X, y = collect_data(maindir,task,timepoint,outputdir,N)
   
