@@ -307,3 +307,209 @@ p2 = linear_regression(dataset_train=dataset_train, dataset_test=dataset_test, a
 # Compare the results with GBs derived weights
 print(p1) # Linear Regression when SGD/Adam is used
 print(p2) # Linear Regression when SGD/Adam is used with Reg and ILC
+
+############################## Linear Regression with generators as input ##############################
+
+OptState = Any
+Batch = Mapping[str, np.ndarray]
+
+
+def linear_regression(train=None, test=None, adam_lr=0.3, agreement_threshold=0.0,
+                               use_ilc=False, l1_coef=1e-4, l2_coef=1e-4,
+                               epochs=1001, Verbose=False, training=True, normalizer=255.):
+  
+
+
+    training_loss = []
+    testing_loss = []
+
+    def net_fn(batch) -> jnp.ndarray:
+        x = jnp.array(batch, jnp.float32) / normalizer
+        mlp = hk.Sequential([
+            hk.Flatten(),
+            hk.Linear(1, with_bias=False)
+        ])
+        return mlp(x)
+
+    
+
+    # Make the network and optimiser.
+    net = hk.without_apply_rng(hk.transform(net_fn))
+        
+    # Training loss (cross-entropy).
+    def loss(params: hk.Params, batch, label) -> jnp.ndarray:
+        """Compute the loss of the network, including L2."""
+        logits = net.apply(params, batch)
+        
+        msl = 0.5 * jnp.sum(jnp.power(logits - label,2)) / batch.shape[0]
+
+        return msl 
+
+        
+    # Regularization loss (L1,L2).
+    def regularization_loss(params: hk.Params) -> jnp.ndarray:
+        """Compute the regularization loss of the network, applied after ILC."""
+
+        # L1 Loss
+        sum_in_layer = lambda p: jnp.sum(jnp.abs(p))
+        sum_p_layers = [sum_in_layer(p) for p in jax.tree_leaves(params)]
+        l1_loss = sum(sum_p_layers)
+
+        # L2 Loss
+        l2_loss = 0.5 * sum(jnp.sum(jnp.square(p)) for p in jax.tree_leaves(params))
+
+        return l2_coef * l2_loss + l1_coef * l1_loss
+
+    @jax.jit
+    def gradient_per_sample(params, batch, label):
+        batch, label = jnp.expand_dims(batch,1), jnp.expand_dims(label,1)
+        return vmap(grad(loss), in_axes=(None, 0, 0))(params, batch, label)
+
+    gradient = jax.jit(grad(loss))
+    gradient_reg = jax.jit(grad(regularization_loss))
+
+    @jax.jit
+    def update(
+        params: hk.Params,
+        opt_state: OptState,
+        batch, label, agreement
+        ) -> Tuple[hk.Params, OptState]:
+        """Learning rule (stochastic gradient descent)."""
+        # grads_masked = (gradient_per_sample if use_ilc else gradient)(params, batch, label) # (gradient_per_sample)(params, batch, label)
+        # sum_grad_masked_regularized = jax.tree_multimap(lambda x,y:x+y,grads_masked,gradient_reg(params))
+        # grads = sum_grad_masked_regularized
+        # updates, opt_state = opt.update(grads, opt_state)
+        # new_params = optax.apply_updates(params, updates)
+
+        # grads = gradient(params, batch, label)
+        grads_samples = gradient_per_sample(params, batch, label)
+        ANDmask = and_mask(agreement)
+
+        masked_grads,_ = ANDmask.update(grads_samples, opt_state)
+        reg_grads = gradient_reg(params)
+
+        sum_grad_masked_regularized = jax.tree_multimap(lambda x,y:x+y,masked_grads,reg_grads)
+ 
+        updates,_ = opt.update(sum_grad_masked_regularized, opt_state)
+
+        new_params = optax.apply_updates(params, updates)
+
+        return new_params, opt_state
+        
+    # We maintain avg_params, the exponential moving average of the "live" params.
+    # avg_params is used only for evaluation.
+    # For more, see: https://doi.org/10.1137/0330046
+    @jax.jit
+    def ema_update(
+        avg_params: hk.Params,
+        new_params: hk.Params,
+        epsilon: float = 0.01,
+    ) -> hk.Params:
+        return jax.tree_multimap(lambda p1, p2: (1 - epsilon) * p1 + epsilon * p2,
+                                avg_params, new_params)
+    
+    if training is False:
+        return net
+    else:
+        if(use_ilc):
+
+            use_ilc = False
+
+            # opt = optax.chain(and_mask(agreement_threshold) if use_ilc else optax.identity(),optax.adam(adam_lr))
+
+            # schedule_fn = optax.exponential_decay(adam_lr, # Note the minus sign!
+            # 1,
+            # 0.9)
+            # opt = optax.chain(optax.sgd(adam_lr), optax.scale_by_schedule(schedule_fn)) # Or Adam could be used
+            opt = optax.chain(optax.adam(adam_lr)) # Or Adam could be used
+
+            # Initialize network and optimiser; note we draw an input to get shapes.
+            params = avg_params = net.init(jax.random.PRNGKey(42), next(train)[0])
+            opt_state = opt.init(params)
+
+            # Train/eval loop. WITHOUT ILC
+            print("Begin training with ILC")
+            for step in range(np.int(.5*epochs)):
+                if step % np.int(epochs/10) == 0:
+                    # Periodically evaluate classification accuracy on train & test sets.
+                    Batch = next(train)
+                    train_loss = loss(avg_params, Batch[0], Batch[1])
+                    train_loss = jax.device_get(train_loss)
+                    Batch = next(test)
+                    test_loss = loss(avg_params, Batch[0], Batch[1])
+                    test_loss = jax.device_get(test_loss)
+                    training_loss.append(train_accuracy)
+                    testing_loss.append(test_accuracy)
+                    if Verbose:
+                        print(f"[ILC Off, Step {step}] Train loss/Test loss: "
+                                f"{train_loss:.3f} / {test_loss:.3f}.")
+
+                # Do SGD on a batch of training examples.
+                Batch = next(train)
+                params, opt_state = update(params, opt_state, Batch[0], Batch[1], 0.)
+                avg_params = ema_update(avg_params, params)
+            
+
+            use_ilc = True
+
+            
+            # Train/eval loop. WITH ILC
+            for step in range(np.int(.5*epochs)):
+                if step % np.int(epochs/10) == 0:
+                    # Periodically evaluate classification accuracy on train & test sets.
+                    Batch = next(train)
+                    train_loss = loss(avg_params, Batch[0], Batch[1])
+                    train_loss = jax.device_get(train_loss)
+                    Batch = next(test)
+                    test_loss = loss(avg_params, Batch[0], Batch[1])
+                    test_loss = jax.device_get(test_loss)
+                    training_loss.append(train_accuracy)
+                    testing_loss.append(test_accuracy)
+                    if Verbose:
+                        print(f"[ILC On, Step {step}] Train loss/Test loss: "
+                                f"{train_loss:.3f} / {test_loss:.3f}.")
+
+                # Do SGD on a batch of training examples.
+                Batch = next(train)
+                params, opt_state = update(params, opt_state, Batch[0], Batch[1], agreement_threshold)
+                avg_params = ema_update(avg_params, params)
+          
+
+            return params, training_loss, testing_loss
+
+        else:
+                
+            # schedule_fn = optax.exponential_decay(adam_lr, # Note the minus sign!
+            # 1,
+            # 0.9)
+            # opt = optax.chain(optax.sgd(adam_lr), optax.scale_by_schedule(schedule_fn)) # Or Adam could be used
+            opt = optax.chain(optax.adam(adam_lr))
+
+            # Initialize network and optimiser; note we draw an input to get shapes.
+            params = avg_params = net.init(jax.random.PRNGKey(42), dataset_train['x'][0])
+            opt_state = opt.init(params)
+
+            # Train/eval loop. 
+            print("Begin training without ILC")
+            for step in range(np.int(epochs)):
+                if step % np.int(epochs/10) == 0:
+                    # Periodically evaluate classification accuracy on train & test sets.
+                    Batch = next(train)
+                    train_loss = loss(avg_params, Batch[0], Batch[1])
+                    train_loss = jax.device_get(train_loss)
+                    Batch = next(test)
+                    test_loss = loss(avg_params, Batch[0], Batch[1])
+                    test_loss = jax.device_get(test_loss)
+                    training_loss.append(train_accuracy)
+                    testing_loss.append(test_accuracy)
+                    if Verbose:
+                        print(f"[ADAM, Step {step}] Train loss/Test loss: "
+                                f"{train_loss:.3f} / {test_loss:.3f}.")
+                        
+                # Do SGD on a batch of training examples.
+                Batch = next(train)
+                params, opt_state = update(params, opt_state, Batch[0], Batch[1], 0.)
+                avg_params = ema_update(avg_params, params)
+
+            
+            return params, training_loss, testing_loss
