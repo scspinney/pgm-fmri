@@ -1,0 +1,207 @@
+import numpy as np 
+import os
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import torch.optim as optim
+from torch.utils.data import Dataset, DataLoader
+from torchvision import transforms, utils
+
+from typing import Any, Generator, Mapping, Tuple
+from absl import app
+import haiku as hk
+import jax
+import jax.numpy as jnp
+import numpy as np
+import optax
+import tensorflow_datasets as tfds
+import numpy.random as npr
+from jax import jit, grad, vmap
+
+
+
+
+
+class ANDMaskState(optax.OptState):
+  """Stateless.""" # Following optax code style
+
+def and_mask(agreement_threshold: float) -> optax.GradientTransformation:
+  def init_fn(_):
+    # Required by optax
+    return ANDMaskState()
+
+  def update_fn(updates, opt_state, params=None):
+    def and_mask(update):
+      # Compute the masked gradients for a single parameter tensor
+      mask = jnp.abs(jnp.mean(jnp.sign(update), 0)) >= agreement_threshold
+      mask = mask.astype(jnp.float32)
+      avg_update = jnp.mean(update, 0)
+      mask_t = mask.sum() / mask.size
+      update = mask * avg_update * (1. / (1e-10 + mask_t))
+      return update
+    del params # Following optax code style
+    
+    # Compute the masked gradients over all parameters
+
+    # jax.tree_map maps a function (lambda function in this case) over a pytree to produce a new pytree.
+    updates = jax.tree_map(lambda x: and_mask(x), updates)
+    return updates, opt_state
+
+  return optax.GradientTransformation(init_fn, update_fn)
+
+
+
+"""MNIST classifier example."""
+
+
+OptState = Any
+Batch = Mapping[str, np.ndarray]
+
+
+def net_fn(batch: Batch) -> jnp.ndarray:
+  
+  x = batch["image"].astype(jnp.float32) / 255.
+  mlp = hk.Sequential([
+      hk.Flatten(),
+      hk.Linear(500), jax.nn.relu, # 300
+      hk.Linear(500), jax.nn.relu, # 1000
+      hk.Linear(10),
+  ])
+  return mlp(x)
+
+
+def load_dataset(
+    split: str,
+    *,
+    is_training: bool,
+    batch_size: int,
+    ) -> Generator[Batch, None, None]:
+    """Loads the dataset as a generator of batches."""
+    ds = tfds.load("mnist:3.*.*", split=split).cache().repeat()
+    if is_training:
+        ds = ds.shuffle(10 * batch_size, seed=0)
+    ds = ds.batch(batch_size)
+    return iter(tfds.as_numpy(ds))
+
+
+# Make the network and optimiser.
+net = hk.without_apply_rng(hk.transform(net_fn))
+# opt = optax.adam(1e-3)
+opt = optax.chain(
+    # and_mask(0.),
+    optax.adam(1e-3),
+    # optax.scale_by_adam(),
+    # optax.additive_weight_decay(),
+    # optax.scale_by_schedule(schedule_fn)
+    )
+
+    
+  # Training loss (cross-entropy).
+def loss(params: hk.Params, batch: Batch) -> jnp.ndarray:
+    """Compute the loss of the network, including L2."""
+    logits = net.apply(params, batch)
+    labels = jax.nn.one_hot(batch["label"], 10)
+
+    # L1 Loss
+    sum_in_layer = lambda p: jnp.sum(p)
+    sum_p_layers = [sum_in_layer(p) for p in jax.tree_leaves(params)]
+    l1_loss = sum(sum_p_layers)
+
+    # L2 Loss
+    l2_loss = 0.5 * sum(jnp.sum(jnp.square(p)) for p in jax.tree_leaves(params))
+
+    # Cross Entropy Loss
+    softmax_xent = -jnp.sum(labels * jax.nn.log_softmax(logits))
+    softmax_xent /= labels.shape[0]
+
+    return softmax_xent + 1e-4 * l2_loss + 1e-5 * l1_loss
+
+# Evaluation metric (classification accuracy).
+@jax.jit
+def accuracy(params: hk.Params, batch: Batch) -> jnp.ndarray:
+    predictions = net.apply(params, batch)
+    return jnp.mean(jnp.argmax(predictions, axis=-1) == batch["label"])
+
+@jax.jit
+def update(
+      params: hk.Params,
+      opt_state: OptState,
+      batch: Batch,
+    ) -> Tuple[hk.Params, OptState]:
+    """Learning rule (stochastic gradient descent)."""
+    grads = jax.grad(loss)(params, batch)
+    updates, opt_state = opt.update(grads, opt_state)
+    new_params = optax.apply_updates(params, updates)
+    return new_params, opt_state
+
+# We maintain avg_params, the exponential moving average of the "live" params.
+# avg_params is used only for evaluation.
+# For more, see: https://doi.org/10.1137/0330046
+@jax.jit
+def ema_update(
+      avg_params: hk.Params,
+      new_params: hk.Params,
+      epsilon: float = 0.001,
+  ) -> hk.Params:
+    return jax.tree_multimap(lambda p1, p2: (1 - epsilon) * p1 + epsilon * p2,
+                             avg_params, new_params)
+
+# Make datasets.
+train = load_dataset("train", is_training=True, batch_size=1000)
+train_eval = load_dataset("train", is_training=False, batch_size=10000)
+test_eval = load_dataset("test", is_training=False, batch_size=10000)
+
+# Initialize network and optimiser; note we draw an input to get shapes.
+params = avg_params = net.init(jax.random.PRNGKey(42), next(train))
+opt_state = opt.init(params)
+
+# Train/eval loop.
+for step in range(10001):
+    if step % 1000 == 0:
+      # Periodically evaluate classification accuracy on train & test sets.
+      train_accuracy = accuracy(avg_params, next(train_eval))
+      test_accuracy = accuracy(avg_params, next(test_eval))
+      train_accuracy, test_accuracy = jax.device_get(
+          (train_accuracy, test_accuracy))
+      print(f"[Step {step}] Train / Test accuracy: "
+            f"{train_accuracy:.3f} / {test_accuracy:.3f}.")
+
+    # Do SGD on a batch of training examples.
+    # print(next(train)['label'].shape)
+    # break
+    params, opt_state = update(params, opt_state, next(train))
+    avg_params = ema_update(avg_params, params)
+
+#################### Evaluation #########################
+
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.metrics import confusion_matrix
+from sklearn.metrics import precision_recall_fscore_support
+
+
+def accuracy(out, labels):
+    return np.sum(out==labels)/float(len(labels))
+
+def evaluate(model, params, validation_data, validation_labels):
+
+    logits = model.apply(params, validation_data)
+
+    predictions = np.argmax(jax.nn.log_softmax(logits),1)
+    # print(outputs)
+    acc = accuracy(predictions, validation_labels)
+    print('Accuracy: ', acc)
+
+    # As mentioned before, data is unbalanced, hence, the accuracy itself is not 
+    # enough for evaluating the performance of the model.
+    # print(outputs,local_labels.cpu().detach().numpy())
+    cm = confusion_matrix(predictions.transpose(), validation_labels)
+    sns.set_theme()
+    plt.figure()
+    ax = sns.heatmap(cm)
+    print('\nConfusion Matrix: ', cm)
+    precision,recall,fscore,_ = precision_recall_fscore_support(validation_labels, predictions)
+    print('\nPrecision: ',precision,'\nRecall: ', recall,'\nF-score: ', fscore)
+
+# print(next(test_eval)['image'])
+evaluate(net, avg_params, next(test_eval), next(test_eval)['label'])

@@ -6,6 +6,11 @@ import pickle
 import torch
 from torch.utils.data import Dataset, DataLoader
 
+import haiku as hk
+import jax
+import jax.numpy as jnp
+import numpy as np
+import optax
 
 def storeData(object, file_name, root_dir):
     with open(root_dir+file_name, 'wb') as f:
@@ -138,6 +143,122 @@ class fmriDatasetSubject(Dataset):
             sample = self.transform(sample)
 
         return sample, self.labels[idx]
+
+############## MRI DATA LOADERS ######################
+
+class mriDatasetAllSubjects(Dataset):
+    """MRI dataset when all subjects data is mixed."""
+
+    def __init__(self, root_dir, files_paths, list_of_partitions, list_of_labels, format, transform=None):
+        # event_file could be added when real data is available.
+        # add this argument later: tsv_file
+        """
+        Args:
+            files_paths (string): Path to the (f]mri) file (nifti or npy).
+            root_dir (string): Directory with all the images.
+            transform (callable, optional): Optional transform to be applied
+                on a sample, i.e. flattening and subsampling.
+        """
+        self.root_dir = root_dir
+
+        if format is 'nifti':
+            self.number_of_subjects = len(files_paths)
+            self.labels = np.concatenate([list_of_labels[i] for i in range(self.number_of_subjects)], axis=0)
+
+            # list of NiftiImage objects for different subjects, i.e., if there are "two"
+            # subjects, then X contains "two" 4-D images of shape (x_dim,y_dim,z_dim,time)
+            X = []
+
+            # list of events
+            Y = []
+
+            # This loop goes over the nifti images of the subjects
+            for index, image_path in enumerate(files_paths):
+                # load image and remove nan and inf values.
+                # applying smooth_img to an image with fwhm=None simply cleans up
+                # non-finite values but otherwise doesn't modify the image.
+                self.path = os.path.join(self.root_dir, image_path)
+                image = smooth_img(self.path, fwhm=None)
+                X.append(image)
+
+            self.subject_frames = np.array(
+                                [X[i].get_fdata() for i in range(self.number_of_subjects)])
+
+        else:
+            print("Broken for now.")
+            # self.labels = list_of_labels
+            #
+            # self.path = os.path.join(self.root_dir, files_paths)
+            #
+            # image = np.load(self.path, encoding='bytes')
+            # #image = np.reshape(image, (images.shape[1], images.shape[2], images.shape[3], images.shape[0]))
+            #
+            # self.subject_frames = images
+
+        self.transform = transform
+
+    def __len__(self):
+        return (self.subject_frames).shape[0]
+
+    def __getitem__(self, idx):
+        if torch.is_tensor(idx):
+            idx = idx.tolist()
+
+        sample = self.subject_frames[idx, :, :, :]
+
+        if self.transform:
+            sample = self.transform(sample)
+
+        return sample, self.labels[idx]
+
+
+# In case we wanted to do experiments with ILC intra subjects
+class mriDatasetSubject(Dataset):
+    """fMRI dataset for each subject."""
+
+    def __init__(self, root_dir, file_path, list_IDs, labels, format, transform=None):
+        # event_file could be added when real data is available.
+        # add this argument later: tsv_file
+        """
+        Args:
+            file_path (string): Path to the (fmri) file (nifti or npy).
+            root_dir (string): Directory with all the images.
+            transform (callable, optional): Optional transform to be applied
+                on a sample, i.e. flattening and subsampling.
+        """
+
+        self.root_dir = root_dir
+        self.file_path = file_path
+        self.labels = labels
+        self.path = os.path.join(self.root_dir, self.file_path)
+
+        if format is 'nifti':
+            self.subject_frames = smooth_img(self.path, fwhm=None).get_fdata()
+            self.subject_frames = self.subject_frames[:, :, :, list_IDs]
+
+        else:
+
+            images = np.load(self.path, encoding='bytes')
+            images = images[list_IDs, :, :, :]
+            images = np.reshape(images, (images.shape[1], images.shape[2], images.shape[3], images.shape[0]))
+            self.subject_frames = images
+
+        self.transform = transform
+
+    def __len__(self):
+        return (self.subject_frames).shape[3]
+
+    def __getitem__(self, idx):
+        if torch.is_tensor(idx):
+            idx = idx.tolist()
+
+        sample = self.subject_frames[:, :, :, idx]
+
+        if self.transform:
+            sample = self.transform(sample)
+
+        return sample, self.labels[idx]
+
 
 class Flatten(object):
     """flatten the 3D image of a timestep.
