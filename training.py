@@ -6,14 +6,21 @@ import torch.nn.functional as F
 import numpy as np
 import gc 
 import os
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.metrics import confusion_matrix
+from sklearn.metrics import precision_recall_fscore_support
+from collections import Counter
 
 
 def accuracy(out, labels):
     outputs = np.argmax(out, axis=1)
     return np.sum(outputs==labels)/float(len(labels))
 
-def evaluate(model, validation_data, validation_labels):
+def evaluate(model_obj, validation_data, validation_labels):
 
+    model = model_obj.model
+    device = model_obj.device
     validation_data = validation_data.to(device)
 
     out = model(validation_data.float())
@@ -148,9 +155,22 @@ class Train():
       setattr(self, key, value)
   
     # CUDA for PyTorch
+
     use_cuda = torch.cuda.is_available()
     device = torch.device("cuda:0" if use_cuda else "cpu")
-    torch.backends.cudnn.benchmark = True
+
+    
+    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    print('Using device:', device)
+    #Additional Info when using cuda
+    if device.type == 'cuda':
+      print(torch.cuda.get_device_name(0))
+      print('Memory Usage:')
+      print('Allocated:', round(torch.cuda.memory_allocated(0)/1024**3,1), 'GB')
+      print('Cached:   ', round(torch.cuda.memory_reserved(0)/1024**3,1), 'GB')
+    
+    # use_cuda = torch.cuda.is_available()
+    # device = torch.device("cuda:0" if use_cuda else "cpu")
     
     self.device = device
     
@@ -161,11 +181,13 @@ class Train():
 
   def _train(self):
     
+    print(Counter(self.train_data.labels))
+    
     """ Generators """
-    training_generator = DataLoader(self.train_data, batch_size=self.batch_size,shuffle=self.shuffle, num_workers=self.num_workers, drop_last=(self.drop_last=='True'))
+    training_generator = DataLoader(self.train_data, batch_size=self.batch_size,shuffle=(self.shuffle=="True"), num_workers=self.num_workers, drop_last=(self.drop_last=='True'))
     #TODO: make an actual validation set
     validation_set = self.test_data # why is num_workers = 0 ? 
-    validation_generator = DataLoader(validation_set, batch_size=self.batch_size, shuffle=self.shuffle, num_workers=self.num_workers, drop_last=(self.drop_last=='True'))
+    validation_generator = DataLoader(validation_set, batch_size=self.batch_size, shuffle=(self.shuffle=="True"), num_workers=self.num_workers, drop_last=(self.drop_last=='True'))
     
     """ Instantiate model on device """
     criterion = nn.CrossEntropyLoss(weight = torch.from_numpy(self.weights).float())
@@ -207,14 +229,9 @@ class Train():
               loss = criterion(outputs, input_labels)
               loss.backward()
               optimizer.step()
-              print(f"training loss: {loss}")
-      
-              # print statistics
-              # running_loss += loss.item()
-              # if i % 10 == 0:    # print every 10 samples
-              #     print('[%d, %5d] loss: %.3f' %
-              #           (epoch + 1, i + 1, running_loss / 2000))
-              #     running_loss = 0.0
+
+              if batch_number % 10 == 0:    # print every 10 samples
+                print(f"training loss: {loss}")
       
           # Validation
           with torch.set_grad_enabled(False):
@@ -244,56 +261,57 @@ class Train():
 
     def optimize_sdg_reg():
 
-          print("Begin training with Regularized SGD...")
+        print("Begin training with Regularized SGD...")
 
-          """ Training """
-          # Loop over epochs
-          for epoch in range(self.max_epochs):
-              print(f"Epoch: {epoch}")
-              running_loss = 0
-              batch_number = 0
+        """ Training """
+        # Loop over epochs
+        for epoch in range(self.max_epochs):
+            print(f"Epoch: {epoch}")
+            running_loss = 0
+            batch_number = 0
 
-              # Begin
-              for input_batch, input_labels in training_generator:
+            # Begin
+            for input_batch, input_labels in training_generator:
 
-                  batch_number += 1
-                  # Transfer to GPU
-                  input_batch, input_labels = input_batch.to(self.device), input_labels.to(self.device)
-                  # Model computations
-                  # zero the parameter gradients
-                  optimizer.zero_grad()
+                batch_number += 1
+                # Transfer to GPU
+                input_batch, input_labels = input_batch.to(self.device), input_labels.to(self.device)
+                # Model computations
+                # zero the parameter gradients
+                optimizer.zero_grad()
 
-                  # forward + backward + optimize
-                  outputs = self.model(input_batch.float())
-                  loss = criterion(outputs, input_labels) + l1_loss()
-                  loss.backward()
-                  optimizer.step()
+                # forward + backward + optimize
+                outputs = self.model(input_batch.float())
+                loss = criterion(outputs, input_labels) + l1_loss()
+                loss.backward()
+                optimizer.step()
+                
+
+                # print statistics
+                # running_loss += loss.item()
+                if batch_number % 10 == 0:    # print every 10 samples
                   print(f"training loss: {loss}")
+                #     print('[%d, %5d] loss: %.3f' %
+                #           (epoch + 1, i + 1, running_loss / 2000))
+                #     running_loss = 0.0
 
-                  # print statistics
-                  # running_loss += loss.item()
-                  # if i % 10 == 0:    # print every 10 samples
-                  #     print('[%d, %5d] loss: %.3f' %
-                  #           (epoch + 1, i + 1, running_loss / 2000))
-                  #     running_loss = 0.0
+            # Validation
+            with torch.set_grad_enabled(False):
+                total_loss = 0
+                for local_batch, local_labels in validation_generator:
+                    # Transfer to GPU
+                    local_batch, local_labels = local_batch.to(self.device), local_labels.to(self.device)
 
-              # Validation
-              with torch.set_grad_enabled(False):
-                  total_loss = 0
-                  for local_batch, local_labels in validation_generator:
-                      # Transfer to GPU
-                      local_batch, local_labels = local_batch.to(self.device), local_labels.to(self.device)
+                    # Model computations
+                    outputs = self.model(local_batch.float())
+                    loss = criterion(outputs, local_labels)
+                    total_loss += loss + l1_loss()
+                print(f"total validation: {total_loss}")
 
-                      # Model computations
-                      outputs = self.model(local_batch.float())
-                      loss = criterion(outputs, local_labels)
-                      total_loss += loss + l1_loss()
-                  print(f"total validation: {total_loss}")
+        torch.save(self.model.state_dict(), os.path.join(self.model_output, 'model-sdg-reg.pt'))
+        print('Finished training with SGD-REG.')
 
-          torch.save(self.model.state_dict(), os.path.join(self.model_output, 'model-sdg.pt'))
-          print('Finished training with SGD.')
-#####################################
-        
+      
     def optimize_sdg_reg_ilc():
       
       # Loop over epochs
@@ -319,7 +337,7 @@ class Train():
                   # n_agreement_envs equal to batch size
                   mean_loss, masks = get_grads(
                       agreement_threshold=self.agreement_threshold,
-                      batch_size=self.batch_size,
+                      batch_size=1,
                       loss_fn=criterion,
                       n_agreement_envs=len(input_labels),
                       params=optimizer.param_groups[0]['params'],
@@ -342,11 +360,11 @@ class Train():
               optimizer.step()
       
               # print statistics
-              # running_loss += loss.item()
-              # if i % 10 == 0:    # print every 10 samples
-              #     print('[%d, %5d] loss: %.3f' %
-              #           (epoch + 1, i + 1, running_loss / 2000))
-              #     running_loss = 0.0
+              running_loss += mean_loss.item()
+              if batch_number % 10 == 0:    # print every 10 samples
+                  print('[%d, %5d] loss: %.3f' %
+                        (epoch + 1, batch_number + 1, running_loss / 2000))
+                  running_loss = 0.0
       
           # Validation
           with torch.set_grad_enabled(False):

@@ -67,10 +67,13 @@ class fmriDatasetAllSubjects(Dataset):
 
         else:
             self.labels = list_of_labels
-
+            
             self.path = os.path.join(self.root_dir, files_paths)
         
             images = np.load(self.path, encoding='bytes')
+            
+            #TODO: lower floating point precision
+            images = np.float16(images)
             images = images[list_of_partitions,:,:,:]
             images = np.reshape(images, (images.shape[1],images.shape[2],images.shape[3],images.shape[0]))
 
