@@ -434,7 +434,7 @@ if __name__ == "__main__":
                     print('Parameters=[l1={}, l2={}, agreement={}], Environment={}'.format(l1,l2,thresh, m))
                     params, train_accs, test_accs = sparse_logistic_regression(ds_train_envs[m], test_ds, adam_lr=1e-3, agreement_threshold=thresh,
                                             use_ilc=True, l1_coef=l1, l2_coef=l2,
-                                            epochs=10001, Verbose=True)
+                                            epochs=10001, Verbose=True, n_classes=5, normalizer=1)
                     envs_elastic_net_params.append(params)
                     hp['params'].append(params)
                     hp['training_accuracies'].append(train_accs)
