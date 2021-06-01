@@ -381,6 +381,15 @@ if __name__ == "__main__":
         index = int(y_3[i].decode("utf-8").split('/')[-1].split('.')[0].split('_')[-1])
         V3_y[index-1] = np.load(y_3[i])
 
+    # remove class 0 or go_scan
+    V1_X = V1_X[V1_y != 0]
+    V2_X = V2_X[V2_y != 0]
+    V3_X = V3_X[V3_y != 0]
+
+    V1_y = V1_y[V1_y != 0]
+    V2_y = V2_y[V2_y != 0]
+    V3_y = V3_y[V3_y != 0]
+
     V1_X = V1_X.reshape(-1,53, 63, 52)
     V2_X = V2_X.reshape(-1,53, 63, 52)
     V3_X = V3_X.reshape(-1,53, 63, 52)
