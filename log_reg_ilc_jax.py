@@ -8,7 +8,6 @@ import seaborn as sns
 from tqdm import tqdm
 np.set_printoptions(precision=5, suppress=True)
 import tensorflow as tf
-import tensorflow_datasets as tfds
 
 from typing import Any, Generator, Mapping, Tuple
 from absl import app
@@ -82,7 +81,7 @@ def load_dataset(
     if is_training:
         ds = ds.shuffle(10 * batch_size, seed=0)
     ds = ds.batch(batch_size)
-    return iter(tfds.as_numpy(ds))
+    return iter(ds.as_numpy_iterator())
 
 
 ### JAX Code
@@ -351,9 +350,9 @@ if __name__ == "__main__":
     X_2 = list(tf.data.Dataset.list_files("V2/X/*.npy").as_numpy_iterator())
     X_3 = list(tf.data.Dataset.list_files("V3/X/*.npy").as_numpy_iterator())
 
-    y_1 = list(tf.data.Dataset.list_files("V1/y/*.npy").as_numpy_iterator())
-    y_2 = list(tf.data.Dataset.list_files("V2/y/*.npy").as_numpy_iterator())
-    y_3 = list(tf.data.Dataset.list_files("V3/y/*.npy").as_numpy_iterator())
+    y_1 = list(tf.data.Dataset.list_files("/Users/iDev/repos/pgm-fmri/data/V1/y/*.npy").as_numpy_iterator())
+    y_2 = list(tf.data.Dataset.list_files("/Users/iDev/repos/pgm-fmri/data/V2/y/*.npy").as_numpy_iterator())
+    y_3 = list(tf.data.Dataset.list_files("/Users/iDev/repos/pgm-fmri/data/V3/y/*.npy").as_numpy_iterator())
 
     V1_X = np.zeros((len(X_1), 300, 53, 63, 52))
     V2_X = np.zeros((len(X_2), 300, 53, 63, 52))
