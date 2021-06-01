@@ -1,7 +1,6 @@
 import torch
 import numpy as np
 from copy import deepcopy
-import seaborn as sns
 np.set_printoptions(precision=5, suppress=True)
 import tensorflow as tf
 
@@ -15,7 +14,6 @@ import optax
 from optax._src import transform
 from jax import jit, grad, vmap
 from jax.tree_util import tree_structure
-import seaborn as sns
 from sklearn.metrics import confusion_matrix
 from sklearn.metrics import precision_recall_fscore_support
 import pickle
