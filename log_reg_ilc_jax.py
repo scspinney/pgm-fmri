@@ -14,8 +14,6 @@ import optax
 from optax._src import transform
 from jax import jit, grad, vmap
 from jax.tree_util import tree_structure
-from sklearn.metrics import confusion_matrix
-from sklearn.metrics import precision_recall_fscore_support
 import pickle
 
 def storeData(object, file_name, root_dir):
