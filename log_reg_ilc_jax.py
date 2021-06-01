@@ -398,6 +398,11 @@ if __name__ == "__main__":
     V2_y = V2_y.reshape(-1)
     V3_y = V3_y.reshape(-1)
 
+    # normalize data
+    V1_X = (V1_X - V1_X.mean()) / V1_X.std()
+    V2_X = (V2_X - V2_X.mean()) / V2_X.std()
+    V3_X = (V3_X - V3_X.mean()) / V3_X.std()
+
     datasets = [tf.data.Dataset.from_tensor_slices({'X': V1_X, 'y': V1_y}),
                 tf.data.Dataset.from_tensor_slices({'X': V2_X, 'y': V2_y}),
                 tf.data.Dataset.from_tensor_slices({'X': V3_X, 'y': V3_y})]
