@@ -1,11 +1,9 @@
 import torch
 import numpy as np
-from tqdm import tqdm
 from copy import deepcopy
 import matplotlib
 import matplotlib.pyplot as plt
 import seaborn as sns
-from tqdm import tqdm
 np.set_printoptions(precision=5, suppress=True)
 import tensorflow as tf
 
@@ -344,11 +342,11 @@ def sparse_logistic_regression(train=None, test=None, adam_lr=1e-3, agreement_th
 
 if __name__ == "__main__":
 
-    root_dir = ''
+    root_dir = '/Users/iDev/repos/pgm-fmri/data/'
 
-    X_1 = list(tf.data.Dataset.list_files("V1/X/*.npy").as_numpy_iterator())
-    X_2 = list(tf.data.Dataset.list_files("V2/X/*.npy").as_numpy_iterator())
-    X_3 = list(tf.data.Dataset.list_files("V3/X/*.npy").as_numpy_iterator())
+    X_1 = list(tf.data.Dataset.list_files("/Users/iDev/repos/pgm-fmri/data/V1/X/*.npy").as_numpy_iterator())
+    X_2 = list(tf.data.Dataset.list_files("/Users/iDev/repos/pgm-fmri/data/V2/X/*.npy").as_numpy_iterator())
+    X_3 = list(tf.data.Dataset.list_files("/Users/iDev/repos/pgm-fmri/data/V3/X/*.npy").as_numpy_iterator())
 
     y_1 = list(tf.data.Dataset.list_files("/Users/iDev/repos/pgm-fmri/data/V1/y/*.npy").as_numpy_iterator())
     y_2 = list(tf.data.Dataset.list_files("/Users/iDev/repos/pgm-fmri/data/V2/y/*.npy").as_numpy_iterator())
