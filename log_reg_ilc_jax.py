@@ -352,22 +352,16 @@ if __name__ == "__main__":
     V3_y = np.zeros((len(y_3), 300))
 
     for i in range(len(X_1)):
-        index = int(X_1[i].decode("utf-8").split('/')[-1].split('.')[0].split('_')[-1])
-        V1_X[index-1] = np.load(X_1[i])
-        index = int(y_1[i].decode("utf-8").split('/')[-1].split('.')[0].split('_')[-1])
-        V1_y[index-1] = np.load(y_1[i])
+        V1_X[i] = np.load(X_1[i])
+        V1_y[i] = np.load(y_1[i])
 
     for i in range(len(X_2)):
-        index = int(X_2[i].decode("utf-8").split('/')[-1].split('.')[0].split('_')[-1])
-        V2_X[index-1] = np.load(X_2[i])
-        index = int(y_2[i].decode("utf-8").split('/')[-1].split('.')[0].split('_')[-1])
-        V2_y[index-1] = np.load(y_2[i])
+        V2_X[i] = np.load(X_2[i])
+        V2_y[i] = np.load(y_2[i])
 
     for i in range(len(X_3)):
-        index = int(X_3[i].decode("utf-8").split('/')[-1].split('.')[0].split('_')[-1])
-        V3_X[index-1] = np.load(X_3[i])
-        index = int(y_3[i].decode("utf-8").split('/')[-1].split('.')[0].split('_')[-1])
-        V3_y[index-1] = np.load(y_3[i])
+        V3_X[i] = np.load(X_3[i])
+        V3_y[i] = np.load(y_3[i])
 
     # remove class 0 or go_scan
     V1_X = V1_X[V1_y != 0]
