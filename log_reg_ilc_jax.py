@@ -333,15 +333,15 @@ def sparse_logistic_regression(train=None, test=None, adam_lr=1e-3, agreement_th
 
 if __name__ == "__main__":
 
-    root_dir = '/Users/iDev/repos/pgm-fmri/data/'
+    root_dir = ''
 
-    X_1 = list(tf.data.Dataset.list_files("/Users/iDev/repos/pgm-fmri/data/V1/X/*.npy").as_numpy_iterator())
-    X_2 = list(tf.data.Dataset.list_files("/Users/iDev/repos/pgm-fmri/data/V2/X/*.npy").as_numpy_iterator())
-    X_3 = list(tf.data.Dataset.list_files("/Users/iDev/repos/pgm-fmri/data/V3/X/*.npy").as_numpy_iterator())
+    X_1 = list(tf.data.Dataset.list_files("V1/X/*.npy").as_numpy_iterator())
+    X_2 = list(tf.data.Dataset.list_files("V2/X/*.npy").as_numpy_iterator())
+    X_3 = list(tf.data.Dataset.list_files("V3/X/*.npy").as_numpy_iterator())
 
-    y_1 = list(tf.data.Dataset.list_files("/Users/iDev/repos/pgm-fmri/data/V1/y/*.npy").as_numpy_iterator())
-    y_2 = list(tf.data.Dataset.list_files("/Users/iDev/repos/pgm-fmri/data/V2/y/*.npy").as_numpy_iterator())
-    y_3 = list(tf.data.Dataset.list_files("/Users/iDev/repos/pgm-fmri/data/V3/y/*.npy").as_numpy_iterator())
+    y_1 = list(tf.data.Dataset.list_files("V1/y/*.npy").as_numpy_iterator())
+    y_2 = list(tf.data.Dataset.list_files("V2/y/*.npy").as_numpy_iterator())
+    y_3 = list(tf.data.Dataset.list_files("V3/y/*.npy").as_numpy_iterator())
 
     V1_X = np.zeros((len(X_1), 300, 53, 63, 52))
     V2_X = np.zeros((len(X_2), 300, 53, 63, 52))
@@ -351,17 +351,56 @@ if __name__ == "__main__":
     V2_y = np.zeros((len(y_2), 300))
     V3_y = np.zeros((len(y_3), 300))
 
+    V1 = {'X': {}, 'y':{}}
+    V2 = {'X': {}, 'y':{}}
+    V3 = {'X': {}, 'y':{}}
+
+
     for i in range(len(X_1)):
-        V1_X[i] = np.load(X_1[i])
-        V1_y[i] = np.load(y_1[i])
+        index = int(X_1[i].decode("utf-8").split('/')[-1].split('.')[0].split('_')[-1])
+        V1['X'][index-1] = np.load(X_1[i])
+        index = int(y_1[i].decode("utf-8").split('/')[-1].split('.')[0].split('_')[-1])
+        V1['y'][index-1] = np.load(y_1[i])
 
     for i in range(len(X_2)):
-        V2_X[i] = np.load(X_2[i])
-        V2_y[i] = np.load(y_2[i])
+        index = int(X_2[i].decode("utf-8").split('/')[-1].split('.')[0].split('_')[-1])
+        V2['X'][index-1] = np.load(X_2[i])
+        index = int(y_2[i].decode("utf-8").split('/')[-1].split('.')[0].split('_')[-1])
+        V2['y'][index-1] = np.load(y_2[i])
 
     for i in range(len(X_3)):
-        V3_X[i] = np.load(X_3[i])
-        V3_y[i] = np.load(y_3[i])
+        index = int(X_3[i].decode("utf-8").split('/')[-1].split('.')[0].split('_')[-1])
+        V3['X'][index-1] = np.load(X_3[i])
+        index = int(y_3[i].decode("utf-8").split('/')[-1].split('.')[0].split('_')[-1])
+        V3['y'][index-1] = np.load(y_3[i])
+
+    V1_X = []
+    V2_X = []
+    V3_X = []
+
+    V1_y = []
+    V2_y = []
+    V3_y = []
+
+    for key in sorted(V1['X']):
+        V1_X.append(V1['X'][key])
+        V1_y.append(V1['y'][key])
+
+    for key in sorted(V2['X']):
+        V2_X.append(V2['X'][key])
+        V2_y.append(V2['y'][key]) 
+
+    for key in sorted(V3['X']):
+        V3_X.append(V3['X'][key])
+        V3_y.append(V3['y'][key]) 
+
+    V1_X = np.array(V1_X)
+    V2_X = np.array(V2_X)
+    V3_X = np.array(V3_X)
+
+    V1_y = np.array(V1_y)
+    V2_y = np.array(V2_y)
+    V3_y = np.array(V3_y)
 
     # remove class 0 or go_scan
     V1_X = V1_X[V1_y != 0]
