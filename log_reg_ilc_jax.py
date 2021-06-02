@@ -343,14 +343,6 @@ if __name__ == "__main__":
     y_2 = list(tf.data.Dataset.list_files("V2/y/*.npy").as_numpy_iterator())
     y_3 = list(tf.data.Dataset.list_files("V3/y/*.npy").as_numpy_iterator())
 
-    V1_X = np.zeros((len(X_1), 300, 53, 63, 52))
-    V2_X = np.zeros((len(X_2), 300, 53, 63, 52))
-    V3_X = np.zeros((len(X_3), 300, 53, 63, 52))
-
-    V1_y = np.zeros((len(y_1), 300))
-    V2_y = np.zeros((len(y_2), 300))
-    V3_y = np.zeros((len(y_3), 300))
-
     V1 = {'X': {}, 'y':{}}
     V2 = {'X': {}, 'y':{}}
     V3 = {'X': {}, 'y':{}}
