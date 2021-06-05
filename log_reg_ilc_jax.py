@@ -1,4 +1,3 @@
-import torch
 import numpy as np
 from copy import deepcopy
 np.set_printoptions(precision=5, suppress=True)
