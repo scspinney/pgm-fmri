@@ -5,7 +5,6 @@ np.set_printoptions(precision=5, suppress=True)
 import tensorflow as tf
 
 from typing import Any, Generator, Mapping, Tuple
-from absl import app
 import haiku as hk
 import jax
 import jax.numpy as jnp
