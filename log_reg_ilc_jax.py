@@ -13,6 +13,7 @@ from optax._src import transform
 from jax import jit, grad, vmap
 from jax.tree_util import tree_structure
 import pickle
+import argparse
 
 def storeData(object, file_name, root_dir):
     with open(root_dir+file_name, 'wb') as f:
@@ -331,15 +332,23 @@ def sparse_logistic_regression(train=None, test=None, adam_lr=1e-3, agreement_th
 
 if __name__ == "__main__":
 
-    root_dir = ''
+    parser = argparse.ArgumentParser()
+    
+    parser.add_argument("--path", type=str)
 
-    X_1 = list(tf.data.Dataset.list_files("V1/X/*.npy").as_numpy_iterator())
-    X_2 = list(tf.data.Dataset.list_files("V2/X/*.npy").as_numpy_iterator())
-    X_3 = list(tf.data.Dataset.list_files("V3/X/*.npy").as_numpy_iterator())
+    args = parser.parse_args()
 
-    y_1 = list(tf.data.Dataset.list_files("V1/y/*.npy").as_numpy_iterator())
-    y_2 = list(tf.data.Dataset.list_files("V2/y/*.npy").as_numpy_iterator())
-    y_3 = list(tf.data.Dataset.list_files("V3/y/*.npy").as_numpy_iterator())
+    root_dir = args.path
+
+    print("the path is ", root_dir)
+
+    X_1 = list(tf.data.Dataset.list_files(root_dir + "/V1/X/*.npy").as_numpy_iterator())
+    X_2 = list(tf.data.Dataset.list_files(root_dir + "/V2/X/*.npy").as_numpy_iterator())
+    X_3 = list(tf.data.Dataset.list_files(root_dir + "/V3/X/*.npy").as_numpy_iterator())
+
+    y_1 = list(tf.data.Dataset.list_files(root_dir + "/V1/y/*.npy").as_numpy_iterator())
+    y_2 = list(tf.data.Dataset.list_files(root_dir + "/V2/y/*.npy").as_numpy_iterator())
+    y_3 = list(tf.data.Dataset.list_files(root_dir + "/V3/y/*.npy").as_numpy_iterator())
 
     V1 = {'X': {}, 'y':{}}
     V2 = {'X': {}, 'y':{}}
