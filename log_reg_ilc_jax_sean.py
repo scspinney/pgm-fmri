@@ -351,13 +351,13 @@ if __name__ == "__main__":
 
     tf.config.experimental.set_visible_devices([], "GPU")
 
-    X_1 = list(tf.data.Dataset.list_files(root_dir + "/V1/X*.npy").as_numpy_iterator())
-    X_2 = list(tf.data.Dataset.list_files(root_dir + "/V2/X*.npy").as_numpy_iterator())
-    X_3 = list(tf.data.Dataset.list_files(root_dir + "/V3/X*.npy").as_numpy_iterator())
+    X_1 = list(tf.data.Dataset.list_files(root_dir + "/V1/X/*.npy").as_numpy_iterator())
+    X_2 = list(tf.data.Dataset.list_files(root_dir + "/V2/X/*.npy").as_numpy_iterator())
+    X_3 = list(tf.data.Dataset.list_files(root_dir + "/V3/X/*.npy").as_numpy_iterator())
 
-    y_1 = list(tf.data.Dataset.list_files(root_dir + "/V1/y*.npy").as_numpy_iterator())
-    y_2 = list(tf.data.Dataset.list_files(root_dir + "/V2/y*.npy").as_numpy_iterator())
-    y_3 = list(tf.data.Dataset.list_files(root_dir + "/V3/y*.npy").as_numpy_iterator())
+    y_1 = list(tf.data.Dataset.list_files(root_dir + "/V1/y/*.npy").as_numpy_iterator())
+    y_2 = list(tf.data.Dataset.list_files(root_dir + "/V2/y/*.npy").as_numpy_iterator())
+    y_3 = list(tf.data.Dataset.list_files(root_dir + "/V3/y/*.npy").as_numpy_iterator())
 
 
     V1 = {'X': {}, 'y':{}}
@@ -365,38 +365,53 @@ if __name__ == "__main__":
     V3 = {'X': {}, 'y':{}}
 
 
-    for i in range(len(X_1)):
-    #for i in range(10):            
+    for i in range(len(X_1)):          
         try:
             index = int(X_1[i].decode("utf-8").split('/')[-1].split('.')[0].split('_')[-1])
             V1['X'][index-1] = np.load(X_1[i])
-            index = int(y_1[i].decode("utf-8").split('/')[-1].split('.')[0].split('_')[-1])        
-            V1['y'][index-1] = np.load(y_1[i])
         except:
             print(f"An exception occurred at index {i} of V1: {X_1[i]}")
             continue
 
-    for i in range(len(X_2)):
-    #for i in range(10):        
+        try:
+            index = int(y_1[i].decode("utf-8").split('/')[-1].split('.')[0].split('_')[-1])        
+            V1['y'][index-1] = np.load(y_1[i])
+        except:
+            print(f"An exception occurred at index {i} of V1: {y_1[i]}")
+            continue
+
+
+    for i in range(len(X_2)):     
         try:
             index = int(X_2[i].decode("utf-8").split('/')[-1].split('.')[0].split('_')[-1])
             V2['X'][index-1] = np.load(X_2[i])
-            index = int(y_2[i].decode("utf-8").split('/')[-1].split('.')[0].split('_')[-1])
-            V2['y'][index-1] = np.load(y_2[i])
-
         except:
              print(f"An exception occurred at index {i} of V2: {X_2[i]}")
              continue
+        try:
+            index = int(y_2[i].decode("utf-8").split('/')[-1].split('.')[0].split('_')[-1])
+            V2['y'][index-1] = np.load(y_2[i])
+        except:
+            print(f"An exception occurred at index {i} of V2: {y_2[i]}")
+            continue
+
 
     for i in range(len(X_3)):
         try:
             index = int(X_3[i].decode("utf-8").split('/')[-1].split('.')[0].split('_')[-1])
             V3['X'][index-1] = np.load(X_3[i])
-            index = int(y_3[i].decode("utf-8").split('/')[-1].split('.')[0].split('_')[-1])
-            V3['y'][index-1] = np.load(y_3[i])
         except:
             print(f"An exception occurred at index {i} if V3: {X_3[i]}")
             continue
+
+        try:
+            index = int(y_3[i].decode("utf-8").split('/')[-1].split('.')[0].split('_')[-1])
+            V3['y'][index-1] = np.load(y_3[i])
+        except:
+            print(f"An exception occurred at index {i} if V3: {y_3[i]}")
+            continue
+
+
     
     V1_X = []
     V2_X = []
@@ -412,6 +427,8 @@ if __name__ == "__main__":
             V1_y.append(V1['y'][key])
         except:
             print(f"An exception occurred for key {key} in V1.")
+            print(V1['X'][key].shape)
+            print(V1['y'][key].shape)
             continue
 
     for key in sorted(V2['X']):
@@ -420,6 +437,8 @@ if __name__ == "__main__":
             V2_y.append(V2['y'][key]) 
         except:
             print(f"An exception occurred for key {key} in V2.")
+            print(V2['X'][key].shape)
+            print(V2['y'][key].shape)
             continue
 
     for key in sorted(V3['X']):
@@ -428,15 +447,23 @@ if __name__ == "__main__":
             V3_y.append(V3['y'][key]) 
         except:
             print(f"An exception occurred for key {key} in V3.")
+            print(V3['X'][key].shape)
+            print(V3['y'][key].shape)
             continue
 
-    V1_X = np.array(V1_X,dtype=object)
-    V2_X = np.array(V2_X,dtype=object)
-    V3_X = np.array(V3_X,dtype=object)
+    V1_X = np.array(V1_X, dtype=object)
+    V2_X = np.array(V2_X, dtype=object)
+    V3_X = np.array(V3_X, dtype=object)
 
-    V1_y = np.array(V1_y,dtype=object)
-    V2_y = np.array(V2_y,dtype=object)
-    V3_y = np.array(V3_y,dtype=object)
+    V1_y = np.array(V1_y, dtype=object)
+    V2_y = np.array(V2_y, dtype=object)
+    V3_y = np.array(V3_y, dtype=object)
+
+    # print(V1_X.shape)
+    # print(V1_y.shape)
+
+    # print(V1_X)
+    # print(V1_y)
 
     # remove class 0 or go_scan
     V1_X = V1_X[V1_y != 0]
