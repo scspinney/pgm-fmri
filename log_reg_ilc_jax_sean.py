@@ -489,3 +489,8 @@ if __name__ == "__main__":
     datasets = [tf.data.Dataset.from_tensor_slices({'X': V1_X, 'y': V1_y}),
                 tf.data.Dataset.from_tensor_slices({'X': V2_X, 'y': V2_y}),
                 tf.data.Dataset.from_tensor_slices({'X': V3_X, 'y': V3_y})]
+
+    ds_train_envs = []
+    for d in datasets:
+        ds = load_dataset("train", is_training=True, batch_size=batch_size, dataset=d)
+        ds_train_envs.append(ds)
