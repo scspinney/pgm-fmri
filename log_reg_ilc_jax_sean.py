@@ -451,13 +451,21 @@ if __name__ == "__main__":
             print(V3['y'][key].shape)
             continue
 
-    V1_X = np.array(V1_X, dtype=object)
-    V2_X = np.array(V2_X, dtype=object)
-    V3_X = np.array(V3_X, dtype=object)
+    #V1_X = np.array(V1_X, dtype=object)
+    #V2_X = np.array(V2_X, dtype=object)
+    #V3_X = np.array(V3_X, dtype=object)
 
-    V1_y = np.array(V1_y, dtype=object)
-    V2_y = np.array(V2_y, dtype=object)
-    V3_y = np.array(V3_y, dtype=object)
+    #V1_y = np.array(V1_y, dtype=object)
+    #V2_y = np.array(V2_y, dtype=object)
+    #V3_y = np.array(V3_y, dtype=object)
+
+    V1_X = np.concatenate(V1_X, dtype=object)
+    V2_X = np.concatenate(V2_X, dtype=object)
+    V3_X = np.concatenate(V3_X, dtype=object)
+
+    V1_y = np.concatenate(V1_y, dtype=object)
+    V2_y = np.concatenate(V2_y, dtype=object)
+    V3_y = np.concatenate(V3_y, dtype=object)
 
     # print(V1_X.shape)
     # print(V1_y.shape)
