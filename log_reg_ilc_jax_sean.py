@@ -287,7 +287,7 @@ def sparse_logistic_regression(train=None, test=None, adam_lr=1e-3, agreement_th
             opt = optax.chain(optax.adam(adam_lr))
 
             # Initialize network and optimiser; note we draw an input to get shapes.
-            params = avg_params = net.init(jax.random.PRNGKey(42), next(train)[0])
+            params = avg_params = net.init(jax.random.PRNGKey(42), next(train)['X'])
             opt_state = opt.init(params)
 
             use_ilc=False
