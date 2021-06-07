@@ -70,12 +70,14 @@ def process_data(root_dir, year):
     V1_X = (V1_X - V1_X.mean()) / V1_X.std()
 
     # save as memmap
-    filename = path.join(mkdtemp(), os.path.join(root_dir,f"/V{year}/V{year}_X_mmap.dat"))
+    filename = os.path.join(root_dir,f"V{year}/V{year}_X_mmap.dat")
+    print(f"Saving X to : {filename}")
     V1_X_mmap = np.memmap(filename, dtype='float32', mode='w+', shape=V1_X.shape)
     V1_X_mmap[:] = V1_X[:]
     V1_X_mmap.flush()
 
-    filename = path.join(mkdtemp(), os.path.join(root_dir,f"/V{year}/V{year}_y_mmap.dat"))
+    filename = os.path.join(root_dir,f"V{year}/V{year}_y_mmap.dat")
+    print(f"Saving y to : {filename}")
     V1_y_mmap = np.memmap(filename, dtype='float32', mode='w+', shape=V1_y.shape)
     V1_y_mmap[:] = V1_y[:]
     V1_y_mmap.flush()
@@ -87,7 +89,7 @@ def process_data(root_dir, year):
 if __name__ == "__main__":
 
     years = [1,2,3]
-    root_dir = "/home/spinney/scratch/fmri/"
+    root_dir = "/home/spinney/scratch/fmri"
     for y in years:
         print(f"Processing year {y}")
         process_data(root_dir,y)
