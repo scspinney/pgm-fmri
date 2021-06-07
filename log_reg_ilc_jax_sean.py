@@ -66,10 +66,10 @@ def load_dataset(
     dataset
     ) -> Generator[Batch, None, None]:
     """Loads the dataset as a generator of batches."""
-    ds = dataset.cache().repeat()
+    ds = dataset
     if is_training:
         ds = ds.shuffle(10 * batch_size, seed=0)
-    ds = ds.batch(batch_size)
+    ds = ds.batch(batch_size).cache().repeat()
     return iter(ds.as_numpy_iterator())
 
 
@@ -489,44 +489,3 @@ if __name__ == "__main__":
     datasets = [tf.data.Dataset.from_tensor_slices({'X': V1_X, 'y': V1_y}),
                 tf.data.Dataset.from_tensor_slices({'X': V2_X, 'y': V2_y}),
                 tf.data.Dataset.from_tensor_slices({'X': V3_X, 'y': V3_y})]
-
-    at = [0.0, 0.5, 0.9]
-    ll1 = [1e-1, 1e-2, 1e-3]
-    ll2 = [1e-1, 1e-2, 1e-3]
-    all = []
-    n_envs = 2
-    ds_train_envs = []
-    print(f"Batch size: {batch_size}")
-    for m in range(n_envs):
-        ds = load_dataset("train", is_training=True, batch_size=batch_size, dataset=datasets[m])
-        ds_train_envs.append(ds)
-
-    test_ds = load_dataset("test", is_training=False, batch_size=batch_size, dataset=datasets[-1])
-
-    round = 0
-    for idx, thresh in enumerate(at):
-        for l1 in ll1:
-            for l2 in ll2:
-                round += 1
-                print('Round: ', round)
-
-                envs_elastic_net_params = []
-                hp = {}
-                hp['thresh'] = thresh
-                hp['l1'] = l1
-                hp['l2'] = l2
-                hp['params'] = []
-                hp['training_accuracies'] = []
-                hp['testing_accuracies'] = []
-                for m in range(n_envs):
-                    print('Parameters=[l1={}, l2={}, agreement={}], Environment={}'.format(l1,l2,thresh, m))
-                    params, train_accs, test_accs = sparse_logistic_regression(ds_train_envs[m], test_ds, adam_lr=1e-3, agreement_threshold=thresh,
-                                            use_ilc=use_ilc, l1_coef=l1, l2_coef=l2,
-                                            epochs=10001, Verbose=True, n_classes=5, normalizer=1)
-                    envs_elastic_net_params.append(params)
-                    hp['params'].append(params)
-                    hp['training_accuracies'].append(train_accs)
-                    hp['testing_accuracies'].append(test_accs)
-                all.append(hp)
-
-    storeData(all, f'all_hps_{outname}', root_dir)
