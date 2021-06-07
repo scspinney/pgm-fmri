@@ -1,7 +1,7 @@
 import numpy as np
 import os
 import glob
-
+from tempfile import mkdtemp
 
 
 def process_data(root_dir, year):
@@ -13,9 +13,9 @@ def process_data(root_dir, year):
     """
 
 
-    X_1 = glob.glob(os.path.join(root_dir,f"V{year}/numpy_data/X*.npy"))
+    X_1 = glob.glob(os.path.join(root_dir,f"V{year}/X*.npy"))
 
-    y_1 = glob.glob(os.path.join(root_dir,f"V{year}/numpy_data/y*.npy"))
+    y_1 = glob.glob(os.path.join(root_dir,f"V{year}/y*.npy"))
 
     V1 = {'X': {}, 'y': {}}
 
@@ -70,19 +70,15 @@ def process_data(root_dir, year):
     V1_X = (V1_X - V1_X.mean()) / V1_X.std()
 
     # save as memmap
-    V1_X_mmap = np.memmap(os.path.join(root_dir,f"/V{year}/V{year}_X_mmap.dat"), dtype='float32', mode='w+', shape=V1_X.shape)
+    filename = path.join(mkdtemp(), os.path.join(root_dir,f"/V{year}/V{year}_X_mmap.dat"))
+    V1_X_mmap = np.memmap(filename, dtype='float32', mode='w+', shape=V1_X.shape)
     V1_X_mmap[:] = V1_X[:]
     V1_X_mmap.flush()
 
-    del V1_X
-    del V1_X_mmap
-
-    V1_y_mmap = np.memmap(os.path.join(root_dir,"/V{year}/V{year}_y_mmap.dat"), dtype='float32', mode='w+', shape=V1_y.shape)
+    filename = path.join(mkdtemp(), os.path.join(root_dir,f"/V{year}/V{year}_y_mmap.dat"))
+    V1_y_mmap = np.memmap(filename, dtype='float32', mode='w+', shape=V1_y.shape)
     V1_y_mmap[:] = V1_y[:]
     V1_y_mmap.flush()
-
-    del V1_y
-    del V1_y_mmap
 
     print("Done.")
 
@@ -91,7 +87,7 @@ def process_data(root_dir, year):
 if __name__ == "__main__":
 
     years = [1,2,3]
-    root_dir = "/data/neuroventure/processed/task_fmri/nii_files/stop/"
+    root_dir = "/home/spinney/scratch/fmri/"
     for y in years:
         print(f"Processing year {y}")
         process_data(root_dir,y)
