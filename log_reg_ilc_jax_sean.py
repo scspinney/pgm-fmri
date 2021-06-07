@@ -348,7 +348,7 @@ if __name__ == "__main__":
 
     print("the path is ", root_dir)
 
-    tf.config.experimental.set_visible_devices([], "GPU")
+    # tf.config.experimental.set_visible_devices([], "GPU")
 
     X_1 = list(tf.data.Dataset.list_files(root_dir + "/V1/X/*.npy").as_numpy_iterator())
     X_2 = list(tf.data.Dataset.list_files(root_dir + "/V2/X/*.npy").as_numpy_iterator())
@@ -357,6 +357,8 @@ if __name__ == "__main__":
     y_1 = list(tf.data.Dataset.list_files(root_dir + "/V1/y/*.npy").as_numpy_iterator())
     y_2 = list(tf.data.Dataset.list_files(root_dir + "/V2/y/*.npy").as_numpy_iterator())
     y_3 = list(tf.data.Dataset.list_files(root_dir + "/V3/y/*.npy").as_numpy_iterator())
+
+    print("loaded list")
 
 
     V1 = {'X': {}, 'y':{}}
@@ -379,6 +381,7 @@ if __name__ == "__main__":
             print(f"An exception occurred at index {i} of V1: {y_1[i]}")
             continue
 
+    print("loaded X_1")
 
     for i in range(len(X_2)):     
         try:
@@ -394,6 +397,7 @@ if __name__ == "__main__":
             print(f"An exception occurred at index {i} of V2: {y_2[i]}")
             continue
 
+    print("loaded X_2")
 
     for i in range(len(X_3)):
         try:
@@ -410,6 +414,7 @@ if __name__ == "__main__":
             print(f"An exception occurred at index {i} if V3: {y_3[i]}")
             continue
 
+    print("loaded X_3")
 
     
     V1_X = []
@@ -430,6 +435,8 @@ if __name__ == "__main__":
             print(V1['y'][key].shape)
             continue
 
+    print("loaded V1_X")
+
     for key in sorted(V2['X']):
         try:
             V2_X.append(V2['X'][key])
@@ -439,6 +446,8 @@ if __name__ == "__main__":
             print(V2['X'][key].shape)
             print(V2['y'][key].shape)
             continue
+
+    print("loaded V2_X")
 
     for key in sorted(V3['X']):
         try:
@@ -450,6 +459,8 @@ if __name__ == "__main__":
             print(V3['y'][key].shape)
             continue
 
+    print("loaded V3_X")
+
     V1_X = np.concatenate(V1_X, axis=0)
     V2_X = np.concatenate(V2_X, axis=0)
     V3_X = np.concatenate(V3_X, axis=0)
@@ -457,6 +468,8 @@ if __name__ == "__main__":
     V1_y = np.concatenate(V1_y, axis=0)
     V2_y = np.concatenate(V2_y, axis=0)
     V3_y = np.concatenate(V3_y, axis=0)
+
+    print("concat done")
 
     # print(V1_X.shape)
     # print(V1_y.shape)
@@ -473,6 +486,8 @@ if __name__ == "__main__":
     V2_y = V2_y[V2_y != 0]
     V3_y = V3_y[V3_y != 0]
 
+    print("filter out done ")
+
     V1_X = V1_X.reshape(-1,53, 63, 52)
     V2_X = V2_X.reshape(-1,53, 63, 52)
     V3_X = V3_X.reshape(-1,53, 63, 52)
@@ -486,11 +501,17 @@ if __name__ == "__main__":
     V2_X = (V2_X - V2_X.mean()) / V2_X.std()
     V3_X = (V3_X - V3_X.mean()) / V3_X.std()
 
+    print("normalize done")
+
     datasets = [tf.data.Dataset.from_tensor_slices({'X': V1_X, 'y': V1_y}),
                 tf.data.Dataset.from_tensor_slices({'X': V2_X, 'y': V2_y}),
                 tf.data.Dataset.from_tensor_slices({'X': V3_X, 'y': V3_y})]
+
+    print("datasets appended")
 
     ds_train_envs = []
     for d in datasets:
         ds = load_dataset("train", is_training=True, batch_size=batch_size, dataset=d)
         ds_train_envs.append(ds)
+
+    print("datasets loaded")
