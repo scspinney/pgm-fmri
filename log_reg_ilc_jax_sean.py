@@ -365,38 +365,53 @@ if __name__ == "__main__":
     V3 = {'X': {}, 'y':{}}
 
 
-    for i in range(len(X_1)):
-    #for i in range(10):            
+    for i in range(len(X_1)):          
         try:
             index = int(X_1[i].decode("utf-8").split('/')[-1].split('.')[0].split('_')[-1])
             V1['X'][index-1] = np.load(X_1[i])
-            index = int(y_1[i].decode("utf-8").split('/')[-1].split('.')[0].split('_')[-1])        
-            V1['y'][index-1] = np.load(y_1[i])
         except:
             print(f"An exception occurred at index {i} of V1: {X_1[i]}")
             continue
 
-    for i in range(len(X_2)):
-    #for i in range(10):        
+        try:
+            index = int(y_1[i].decode("utf-8").split('/')[-1].split('.')[0].split('_')[-1])        
+            V1['y'][index-1] = np.load(y_1[i])
+        except:
+            print(f"An exception occurred at index {i} of V1: {y_1[i]}")
+            continue
+
+
+    for i in range(len(X_2)):     
         try:
             index = int(X_2[i].decode("utf-8").split('/')[-1].split('.')[0].split('_')[-1])
             V2['X'][index-1] = np.load(X_2[i])
-            index = int(y_2[i].decode("utf-8").split('/')[-1].split('.')[0].split('_')[-1])
-            V2['y'][index-1] = np.load(y_2[i])
-
         except:
              print(f"An exception occurred at index {i} of V2: {X_2[i]}")
              continue
+        try:
+            index = int(y_2[i].decode("utf-8").split('/')[-1].split('.')[0].split('_')[-1])
+            V2['y'][index-1] = np.load(y_2[i])
+        except:
+            print(f"An exception occurred at index {i} of V2: {y_2[i]}")
+            continue
+
 
     for i in range(len(X_3)):
         try:
             index = int(X_3[i].decode("utf-8").split('/')[-1].split('.')[0].split('_')[-1])
             V3['X'][index-1] = np.load(X_3[i])
-            index = int(y_3[i].decode("utf-8").split('/')[-1].split('.')[0].split('_')[-1])
-            V3['y'][index-1] = np.load(y_3[i])
         except:
             print(f"An exception occurred at index {i} if V3: {X_3[i]}")
             continue
+
+        try:
+            index = int(y_3[i].decode("utf-8").split('/')[-1].split('.')[0].split('_')[-1])
+            V3['y'][index-1] = np.load(y_3[i])
+        except:
+            print(f"An exception occurred at index {i} if V3: {y_3[i]}")
+            continue
+
+
     
     V1_X = []
     V2_X = []
