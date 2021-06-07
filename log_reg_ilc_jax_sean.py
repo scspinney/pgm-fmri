@@ -430,13 +430,13 @@ if __name__ == "__main__":
             print(f"An exception occurred for key {key} in V3.")
             continue
 
-    V1_X = np.array(V1_X)
-    V2_X = np.array(V2_X)
-    V3_X = np.array(V3_X)
+    V1_X = np.array(V1_X,dtype=object)
+    V2_X = np.array(V2_X,dtype=object)
+    V3_X = np.array(V3_X,dtype=object)
 
-    V1_y = np.array(V1_y)
-    V2_y = np.array(V2_y)
-    V3_y = np.array(V3_y)
+    V1_y = np.array(V1_y,dtype=object)
+    V2_y = np.array(V2_y,dtype=object)
+    V3_y = np.array(V3_y,dtype=object)
 
     # remove class 0 or go_scan
     V1_X = V1_X[V1_y != 0]
