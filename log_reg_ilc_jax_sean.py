@@ -1,4 +1,3 @@
-import torch
 import numpy as np
 from copy import deepcopy
 np.set_printoptions(precision=5, suppress=True)
@@ -288,7 +287,7 @@ def sparse_logistic_regression(train=None, test=None, adam_lr=1e-3, agreement_th
             opt = optax.chain(optax.adam(adam_lr))
 
             # Initialize network and optimiser; note we draw an input to get shapes.
-            params = avg_params = net.init(jax.random.PRNGKey(42), next(train)[0])
+            params = avg_params = net.init(jax.random.PRNGKey(42), next(train)['X'])
             opt_state = opt.init(params)
 
             use_ilc=False
@@ -351,13 +350,13 @@ if __name__ == "__main__":
 
     tf.config.experimental.set_visible_devices([], "GPU")
 
-    X_1 = list(tf.data.Dataset.list_files(root_dir + "/V1/X/*.npy").as_numpy_iterator())
-    X_2 = list(tf.data.Dataset.list_files(root_dir + "/V2/X/*.npy").as_numpy_iterator())
-    X_3 = list(tf.data.Dataset.list_files(root_dir + "/V3/X/*.npy").as_numpy_iterator())
+    X_1 = list(tf.data.Dataset.list_files(root_dir + "/V1/X*.npy").as_numpy_iterator())
+    X_2 = list(tf.data.Dataset.list_files(root_dir + "/V2/X*.npy").as_numpy_iterator())
+    X_3 = list(tf.data.Dataset.list_files(root_dir + "/V3/X*.npy").as_numpy_iterator())
 
-    y_1 = list(tf.data.Dataset.list_files(root_dir + "/V1/y/*.npy").as_numpy_iterator())
-    y_2 = list(tf.data.Dataset.list_files(root_dir + "/V2/y/*.npy").as_numpy_iterator())
-    y_3 = list(tf.data.Dataset.list_files(root_dir + "/V3/y/*.npy").as_numpy_iterator())
+    y_1 = list(tf.data.Dataset.list_files(root_dir + "/V1/y*.npy").as_numpy_iterator())
+    y_2 = list(tf.data.Dataset.list_files(root_dir + "/V2/y*.npy").as_numpy_iterator())
+    y_3 = list(tf.data.Dataset.list_files(root_dir + "/V3/y*.npy").as_numpy_iterator())
 
 
     V1 = {'X': {}, 'y':{}}
@@ -365,38 +364,53 @@ if __name__ == "__main__":
     V3 = {'X': {}, 'y':{}}
 
 
-    for i in range(len(X_1)):
-    #for i in range(10):            
+    for i in range(len(X_1)):          
         try:
             index = int(X_1[i].decode("utf-8").split('/')[-1].split('.')[0].split('_')[-1])
-            V1['X'][index-1] = np.load(X_1[i])
-            index = int(y_1[i].decode("utf-8").split('/')[-1].split('.')[0].split('_')[-1])        
-            V1['y'][index-1] = np.load(y_1[i])
+            V1['X'][index-1] = np.load(X_1[i], mmap_mode='r').astype(np.float32)
         except:
             print(f"An exception occurred at index {i} of V1: {X_1[i]}")
             continue
 
-    for i in range(len(X_2)):
-    #for i in range(10):        
+        try:
+            index = int(y_1[i].decode("utf-8").split('/')[-1].split('.')[0].split('_')[-1])        
+            V1['y'][index-1] = np.load(y_1[i], mmap_mode='r').astype(np.float32)
+        except:
+            print(f"An exception occurred at index {i} of V1: {y_1[i]}")
+            continue
+
+
+    for i in range(len(X_2)):     
         try:
             index = int(X_2[i].decode("utf-8").split('/')[-1].split('.')[0].split('_')[-1])
-            V2['X'][index-1] = np.load(X_2[i])
-            index = int(y_2[i].decode("utf-8").split('/')[-1].split('.')[0].split('_')[-1])
-            V2['y'][index-1] = np.load(y_2[i])
-
+            V2['X'][index-1] = np.load(X_2[i], mmap_mode='r').astype(np.float32)
         except:
              print(f"An exception occurred at index {i} of V2: {X_2[i]}")
              continue
+        try:
+            index = int(y_2[i].decode("utf-8").split('/')[-1].split('.')[0].split('_')[-1])
+            V2['y'][index-1] = np.load(y_2[i], mmap_mode='r').astype(np.float32)
+        except:
+            print(f"An exception occurred at index {i} of V2: {y_2[i]}")
+            continue
+
 
     for i in range(len(X_3)):
         try:
             index = int(X_3[i].decode("utf-8").split('/')[-1].split('.')[0].split('_')[-1])
-            V3['X'][index-1] = np.load(X_3[i])
-            index = int(y_3[i].decode("utf-8").split('/')[-1].split('.')[0].split('_')[-1])
-            V3['y'][index-1] = np.load(y_3[i])
+            V3['X'][index-1] = np.load(X_3[i], mmap_mode='r').astype(np.float32)
         except:
             print(f"An exception occurred at index {i} if V3: {X_3[i]}")
             continue
+
+        try:
+            index = int(y_3[i].decode("utf-8").split('/')[-1].split('.')[0].split('_')[-1])
+            V3['y'][index-1] = np.load(y_3[i], mmap_mode='r').astype(np.float32)
+        except:
+            print(f"An exception occurred at index {i} if V3: {y_3[i]}")
+            continue
+
+
     
     V1_X = []
     V2_X = []
@@ -436,13 +450,13 @@ if __name__ == "__main__":
             print(V3['y'][key].shape)
             continue
 
-    V1_X = np.array(V1_X, dtype=object)
-    V2_X = np.array(V2_X, dtype=object)
-    V3_X = np.array(V3_X, dtype=object)
+    V1_X = np.concatenate(V1_X, axis=0)
+    V2_X = np.concatenate(V2_X, axis=0)
+    V3_X = np.concatenate(V3_X, axis=0)
 
-    V1_y = np.array(V1_y, dtype=object)
-    V2_y = np.array(V2_y, dtype=object)
-    V3_y = np.array(V3_y, dtype=object)
+    V1_y = np.concatenate(V1_y, axis=0)
+    V2_y = np.concatenate(V2_y, axis=0)
+    V3_y = np.concatenate(V3_y, axis=0)
 
     # print(V1_X.shape)
     # print(V1_y.shape)
