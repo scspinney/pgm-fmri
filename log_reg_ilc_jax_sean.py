@@ -486,11 +486,12 @@ if __name__ == "__main__":
     ll1 = [1e-1, 1e-2, 1e-3]
     ll2 = [1e-1, 1e-2, 1e-3]
     all = []
-    n_envs = 2
+    n_envs = 1
     ds_train_envs = []
     print(f"Batch size: {batch_size}")
+    ds = datasets[0].concatenate(datasets[1])
     for m in range(n_envs):
-        ds = load_dataset("train", is_training=True, batch_size=batch_size, dataset=datasets[m])
+        ds = load_dataset("train", is_training=True, batch_size=batch_size, dataset=ds)
         ds_train_envs.append(ds)
 
     test_ds = load_dataset("test", is_training=False, batch_size=batch_size, dataset=datasets[-1])
