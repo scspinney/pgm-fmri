@@ -350,13 +350,13 @@ if __name__ == "__main__":
 
     tf.config.experimental.set_visible_devices([], "GPU")
 
-    X_1 = list(tf.data.Dataset.list_files(root_dir + "/V1/X*.npy").as_numpy_iterator())
-    X_2 = list(tf.data.Dataset.list_files(root_dir + "/V2/X*.npy").as_numpy_iterator())
-    X_3 = list(tf.data.Dataset.list_files(root_dir + "/V3/X*.npy").as_numpy_iterator())
+    X_1 = list(tf.data.Dataset.list_files(root_dir + "/V1_test/X*.npy").as_numpy_iterator())
+    X_2 = list(tf.data.Dataset.list_files(root_dir + "/V2_test/X*.npy").as_numpy_iterator())
+    X_3 = list(tf.data.Dataset.list_files(root_dir + "/V3_test/X*.npy").as_numpy_iterator())
 
-    y_1 = list(tf.data.Dataset.list_files(root_dir + "/V1/y*.npy").as_numpy_iterator())
-    y_2 = list(tf.data.Dataset.list_files(root_dir + "/V2/y*.npy").as_numpy_iterator())
-    y_3 = list(tf.data.Dataset.list_files(root_dir + "/V3/y*.npy").as_numpy_iterator())
+    y_1 = list(tf.data.Dataset.list_files(root_dir + "/V1_test/y*.npy").as_numpy_iterator())
+    y_2 = list(tf.data.Dataset.list_files(root_dir + "/V2_test/y*.npy").as_numpy_iterator())
+    y_3 = list(tf.data.Dataset.list_files(root_dir + "/V3_test/y*.npy").as_numpy_iterator())
 
 
     V1 = {'X': {}, 'y':{}}
@@ -458,7 +458,7 @@ if __name__ == "__main__":
     V2_y = np.concatenate(V2_y, axis=0)
     V3_y = np.concatenate(V3_y, axis=0)
 
-    # print(V1_X.shape)
+    print(V1_X.shape)
     # print(V1_y.shape)
 
     # print(V1_X)
