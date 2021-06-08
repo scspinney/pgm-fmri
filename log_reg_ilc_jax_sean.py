@@ -473,14 +473,6 @@ if __name__ == "__main__":
     V2_y = V2_y[V2_y != 0]
     V3_y = V3_y[V3_y != 0]
 
-    V1_X = V1_X.reshape(-1,53, 63, 52)
-    V2_X = V2_X.reshape(-1,53, 63, 52)
-    V3_X = V3_X.reshape(-1,53, 63, 52)
-
-    V1_y = V1_y.reshape(-1)
-    V2_y = V2_y.reshape(-1)
-    V3_y = V3_y.reshape(-1)
-
     # normalize data
     V1_X = (V1_X - V1_X.mean()) / V1_X.std()
     V2_X = (V2_X - V2_X.mean()) / V2_X.std()
