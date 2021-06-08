@@ -63,12 +63,13 @@ def load_dataset(
     *,
     is_training: bool,
     batch_size: int,
+    seed: int,
     dataset
     ) -> Generator[Batch, None, None]:
     """Loads the dataset as a generator of batches."""
     ds = dataset.cache().repeat()
     if is_training:
-        ds = ds.shuffle(10 * batch_size, seed=0)
+        ds = ds.shuffle(10 * batch_size, seed)
     ds = ds.batch(batch_size)
     return iter(ds.as_numpy_iterator())
 
@@ -106,7 +107,7 @@ def and_mask(agreement_threshold: float) -> optax.GradientTransformation:
 
 def sparse_logistic_regression(train=None, test=None, adam_lr=1e-3, agreement_threshold=0.0,
                                use_ilc=False, l1_coef=1e-5, l2_coef=1e-4,
-                               epochs=10001, Verbose=False, n_classes=2, normalizer=255., training=True):
+                               epochs=10001, Verbose=False, n_classes=2, normalizer=255., training=True,seed=0):
 
 
     training_accs = []
@@ -221,7 +222,7 @@ def sparse_logistic_regression(train=None, test=None, adam_lr=1e-3, agreement_th
                 # ,optax.scale_by_adam()
                 )
             # Initialize network and optimiser; note we draw an input to get shapes.
-            params = avg_params = net.init(jax.random.PRNGKey(42), next(train)['X'])
+            params = avg_params = net.init(jax.random.PRNGKey(seed), next(train)['X'])
             opt_state = opt.init(params)
 
             # opt = optax.chain(and_mask(agreement_threshold) if use_ilc else optax.identity(),optax.adam(adam_lr))
@@ -287,7 +288,7 @@ def sparse_logistic_regression(train=None, test=None, adam_lr=1e-3, agreement_th
             opt = optax.chain(optax.adam(adam_lr))
 
             # Initialize network and optimiser; note we draw an input to get shapes.
-            params = avg_params = net.init(jax.random.PRNGKey(42), next(train)['X'])
+            params = avg_params = net.init(jax.random.PRNGKey(seed), next(train)['X'])
             opt_state = opt.init(params)
 
             use_ilc=False
@@ -337,14 +338,17 @@ if __name__ == "__main__":
 
     parser.add_argument("--path", type=str)
     parser.add_argument("--batch_size", type=int)
+    parser.add_argument("--seed", type=int)
     parser.add_argument('--use_ilc', default=False, action='store_true')
     parser.add_argument("--outname", type=str)
+
     args = parser.parse_args()
 
     root_dir = args.path
     batch_size = args.batch_size
     outname = args.outname
     use_ilc = args.use_ilc
+    seed = args.seed
 
     print("the path is ", root_dir)
 
@@ -491,7 +495,7 @@ if __name__ == "__main__":
     print(f"Batch size: {batch_size}")
     ds = datasets[0].concatenate(datasets[1])
     for m in range(n_envs):
-        ds = load_dataset("train", is_training=True, batch_size=batch_size, dataset=ds)
+        ds = load_dataset("train", is_training=True, batch_size=batch_size, dataset=ds,seed=seed)
         ds_train_envs.append(ds)
 
     test_ds = load_dataset("test", is_training=False, batch_size=batch_size, dataset=datasets[-1])
@@ -515,7 +519,7 @@ if __name__ == "__main__":
                     print('Parameters=[l1={}, l2={}, agreement={}], Environment={}'.format(l1,l2,thresh, m))
                     params, train_accs, test_accs = sparse_logistic_regression(ds_train_envs[m], test_ds, adam_lr=1e-3, agreement_threshold=thresh,
                                             use_ilc=use_ilc, l1_coef=l1, l2_coef=l2,
-                                            epochs=10001, Verbose=True, n_classes=5, normalizer=1)
+                                            epochs=10001, Verbose=True, n_classes=5, normalizer=1, seed=seed)
                     envs_elastic_net_params.append(params)
                     hp['params'].append(params)
                     hp['training_accuracies'].append(train_accs)
