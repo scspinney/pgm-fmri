@@ -469,13 +469,13 @@ if __name__ == "__main__":
     # print(V1_y)
 
     # remove class 0 or go_scan
-    V1_X = V1_X[(V1_y == 4) || (V1_y == 5)]
-    V2_X = V2_X[(V2_y == 4) || (V2_y == 5)]
-    V3_X = V3_X[(V3_y == 4) || (V3_y == 5)]
+    V1_X = V1_X[(V1_y == 4) | (V1_y == 5)]
+    V2_X = V2_X[(V2_y == 4) | (V2_y == 5)]
+    V3_X = V3_X[(V3_y == 4) | (V3_y == 5)]
 
-    V1_y = V1_y[(V1_y == 4) || (V1_y == 5)]
-    V2_y = V2_y[(V2_y == 4) || (V2_y == 5)]
-    V3_y = V3_y[(V3_y == 4) || (V3_y == 5)]
+    V1_y = V1_y[(V1_y == 4) | (V1_y == 5)]
+    V2_y = V2_y[(V2_y == 4) | (V2_y == 5)]
+    V3_y = V3_y[(V3_y == 4) | (V3_y == 5)]
 
     # normalize data
     V1_X = (V1_X - V1_X.mean()) / V1_X.std()
