@@ -498,7 +498,7 @@ if __name__ == "__main__":
         ds = load_dataset("train", is_training=True, batch_size=batch_size, dataset=ds,seed=seed)
         ds_train_envs.append(ds)
 
-    test_ds = load_dataset("test", is_training=False, batch_size=batch_size, dataset=datasets[-1])
+    test_ds = load_dataset("test", is_training=False, batch_size=batch_size, dataset=datasets[-1],seed=seed)
 
     round = 0
     for idx, thresh in enumerate(at):
