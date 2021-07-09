@@ -11,10 +11,17 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 import optax
-from optax._src import transform
+from optax._src import transform, base
 from jax import jit, grad, vmap
 from jax.tree_util import tree_structure
 import pickle
+from collections import Counter
+
+OptState = Any
+Batch = Mapping[str, np.ndarray]
+BUFFER_SIZE = 10
+
+
 
 def storeData(object, file_name, root_dir):
     with open(root_dir+file_name, 'wb') as f:
@@ -27,36 +34,107 @@ def loadData(file_name, root_dir):
         f.close()
         return db
 
-"""### The last feature is the only robust one (it can be found in any environment), but it produces a weaker signal, and has a higher cost using weight decay.
 
-"""
+def make_ds(features, labels):
+  ds = tf.data.Dataset.from_tensor_slices((features, labels))#.cache()
+  ds = ds.shuffle(BUFFER_SIZE).repeat()
+  return ds
 
-# ADD_SMALL_NOISE = False
 
-# # Create the dataset.
-# x = 3 * torch.cat((torch.eye(4), 0.1 * torch.ones(4).view(-1,1)), dim=1)
-# y = torch.tensor([1., 1., 1., 1.]).float()
+def read_fmri_data(root_dir,years):
 
-# if ADD_SMALL_NOISE:
-#     dist = torch.distributions.Uniform(-0.001, 0.001)
-    
-#     # This adds noise on all non-robust feature
-#     x[:, :-1] += dist.sample(x[:, :-1].shape)
-    
-    # This adds noise on every feature
-    #     x += dist.sample(x.shape)
 
-# print('x:', x.numpy(), sep="\n")
-# print('y: ', y.view(-1, 1).numpy(), sep="\n")
+    def process_year(y):
 
-# Make datasets.
-# partitions = {'train':[0,1], 'test': [2,3]}
-# print(x.numpy()[partitions['train']])
-# dataset_train = {'x':x.numpy()[partitions['train']], 'y':y.numpy()[partitions['train']]}
-# dataset_test = {'x':x.numpy()[partitions['test']], 'y':y.numpy()[partitions['test']]}
 
-OptState = Any
-Batch = Mapping[str, np.ndarray]
+        X_1 = list(tf.data.Dataset.list_files(root_dir + f"/V{y}_test/X*.npy").as_numpy_iterator())
+        # X_2 = list(tf.data.Dataset.list_files(root_dir + "/V2_test/X*.npy").as_numpy_iterator())
+        # X_3 = list(tf.data.Dataset.list_files(root_dir + "/V3_test/X*.npy").as_numpy_iterator())
+
+        y_1 = list(tf.data.Dataset.list_files(root_dir + f"/V{y}_test/y*.npy").as_numpy_iterator())
+        # y_2 = list(tf.data.Dataset.list_files(root_dir + "/V2_test/y*.npy").as_numpy_iterator())
+        # y_3 = list(tf.data.Dataset.list_files(root_dir + "/V3_test/y*.npy").as_numpy_iterator())
+
+        V1 = {'X': {}, 'y': {}}
+        # V2 = {'X': {}, 'y': {}}
+        # V3 = {'X': {}, 'y': {}}
+
+        for i in range(len(X_1)):
+            try:
+                index = int(X_1[i].decode("utf-8").split('/')[-1].split('.')[0].split('_')[-1])
+                V1['X'][index - 1] = np.load(X_1[i], mmap_mode='r').astype(np.float32)
+            except:
+                print(f"An exception occurred at index {i} of V{y}: {X_1[i]}")
+                continue
+
+            try:
+                index = int(y_1[i].decode("utf-8").split('/')[-1].split('.')[0].split('_')[-1])
+                V1['y'][index - 1] = np.load(y_1[i], mmap_mode='r').astype(np.float32)
+            except:
+                print(f"An exception occurred at index {i} of V{y}: {y_1[i]}")
+                continue
+
+
+        X = []
+        y = []
+
+
+        for key in sorted(V1['X']):
+            try:
+                X.append(V1['X'][key])
+                y.append(V1['y'][key])
+            except:
+                print(f"An exception occurred for key {key} in V{y}.")
+                print(V1['X'][key].shape)
+                print(V1['y'][key].shape)
+                continue
+
+
+        X = np.concatenate(X, axis=0)
+        y = np.concatenate(y, axis=0)
+
+
+        # normalize data
+        X = (X - X.mean()) / X.std()
+
+
+        # binary classes 1 or 5
+        X_pos = X[y == 4]
+        X_neg = X[y == 5]
+        y_pos = y[y == 4]
+        y_neg = y[y == 5]
+        #X = X[(y == 4) | (y == 5)]
+        #y = y[(y == 4) | (y == 5)]
+
+        print(f"X pos shape: {X_pos.shape}")
+        print(f"y pos shape: {y_pos.shape}")
+        print(f"X neg shape: {X_neg.shape}")
+        print(f"y neg shape: {y_neg.shape}")
+
+        return X_pos, y_pos, X_neg, y_neg
+
+    pos_ds_l = []
+    neg_ds_l = []
+    for y in years:
+        print(f"Processing year {y} data...")
+        X_pos, y_pos, X_neg, y_neg = process_year(y)
+        pos_ds = make_ds(X_pos, y_pos)
+        neg_ds = make_ds(X_neg, y_neg)
+        pos_ds_l.append(pos_ds)
+        neg_ds_l.append(neg_ds)
+
+        # for features, label in pos_ds.take(1):
+        #     print("Features:\n", features.numpy())
+        #     print()
+        #     print("Label: ", label.numpy())
+        #datasets.append(tf.data.Dataset.from_tensor_slices({'X': X, 'y': Y}))
+
+    pos_ds = pos_ds_l[0].concatenate(pos_ds_l[1]) if len(pos_ds_l) > 1 else pos_ds_l[0]
+    neg_ds = neg_ds_l[0].concatenate(neg_ds_l[1]) if len(neg_ds_l) > 1 else neg_ds_l[0]
+    resampled_ds = tf.data.experimental.sample_from_datasets([pos_ds, neg_ds], weights=[0.5, 0.5])
+    #resampled_ds = resampled_ds.batch(batch_size)
+
+    return resampled_ds
 
 def load_dataset(
     split: str,
@@ -68,10 +146,30 @@ def load_dataset(
     ) -> Generator[Batch, None, None]:
     """Loads the dataset as a generator of batches."""
     ds = dataset.cache().repeat()
-    if is_training:
-        ds = ds.shuffle(10 * batch_size, seed)
+    # if is_training:
+    #     ds = ds.shuffle(10 * batch_size, seed)
     ds = ds.batch(batch_size)
+
     return iter(ds.as_numpy_iterator())
+
+
+
+
+
+# def load_dataset(
+#     split: str,
+#     *,
+#     is_training: bool,
+#     batch_size: int,
+#     seed: int,
+#     dataset
+#     ) -> Generator[Batch, None, None]:
+#     """Loads the dataset as a generator of batches."""
+#     ds = dataset.cache().repeat()
+#     if is_training:
+#         ds = ds.shuffle(10 * batch_size, seed)
+#     ds = ds.batch(batch_size)
+#     return iter(ds.as_numpy_iterator())
 
 
 ### JAX Code
@@ -102,7 +200,7 @@ def and_mask(agreement_threshold: float) -> optax.GradientTransformation:
     updates = jax.tree_map(lambda x: and_mask(x), updates)
     return updates, opt_state
 
-  return transform.GradientTransformation(init_fn, update_fn)
+  return base.GradientTransformation(init_fn, update_fn)
 
 
 def sparse_logistic_regression(train=None, test=None, adam_lr=1e-3, agreement_threshold=0.0,
@@ -222,7 +320,7 @@ def sparse_logistic_regression(train=None, test=None, adam_lr=1e-3, agreement_th
                 # ,optax.scale_by_adam()
                 )
             # Initialize network and optimiser; note we draw an input to get shapes.
-            params = avg_params = net.init(jax.random.PRNGKey(seed), next(train)['X'])
+            params = avg_params = net.init(jax.random.PRNGKey(seed), next(train)[0])
             opt_state = opt.init(params)
 
             # opt = optax.chain(and_mask(agreement_threshold) if use_ilc else optax.identity(),optax.adam(adam_lr))
@@ -236,11 +334,11 @@ def sparse_logistic_regression(train=None, test=None, adam_lr=1e-3, agreement_th
             for step in range(np.int(.5*epochs)):
                 if step % np.int(epochs/10) == 0:
                     # Periodically evaluate classification accuracy on train & test sets.
-                    Batch = next(train)
-                    train_accuracy = accuracy(avg_params, Batch['X'], Batch['y'])
+                    X, y = next(train)
+                    train_accuracy = accuracy(avg_params, X, y)
                     train_accuracy = jax.device_get(train_accuracy)
-                    Batch = next(test)
-                    test_accuracy = accuracy(avg_params, Batch['X'], Batch['y'])
+                    X, y = next(test)
+                    test_accuracy = accuracy(avg_params, X, y)
                     test_accuracy = jax.device_get(test_accuracy)
                     training_accs.append(train_accuracy)
                     testing_accs.append(test_accuracy)
@@ -249,8 +347,8 @@ def sparse_logistic_regression(train=None, test=None, adam_lr=1e-3, agreement_th
                                 f"{train_accuracy:.3f} / {test_accuracy:.3f}.")
 
                 # Do SGD on a batch of training examples.
-                Batch = next(train)
-                params, opt_state = update(params, opt_state, Batch['X'], Batch['y'], 0.)
+                X, y = next(train)
+                params, opt_state = update(params, opt_state, X, y, 0.)
                 avg_params = ema_update(avg_params, params)
 
             
@@ -260,11 +358,11 @@ def sparse_logistic_regression(train=None, test=None, adam_lr=1e-3, agreement_th
             for step in range(np.int(.5*epochs)):
                 if step % np.int(epochs/10) == 0:
                     # Periodically evaluate classification accuracy on train & test sets.
-                    Batch = next(train)
-                    train_accuracy = accuracy(avg_params, Batch['X'], Batch['y'])
+                    X, y = next(train)
+                    train_accuracy = accuracy(avg_params, X, y)
                     train_accuracy = jax.device_get(train_accuracy)
-                    Batch = next(test)
-                    test_accuracy = accuracy(avg_params, Batch['X'], Batch['y'])
+                    X, y = next(test)
+                    test_accuracy = accuracy(avg_params, X, y)
                     test_accuracy = jax.device_get(test_accuracy)
                     training_accs.append(train_accuracy)
                     testing_accs.append(test_accuracy)
@@ -273,8 +371,8 @@ def sparse_logistic_regression(train=None, test=None, adam_lr=1e-3, agreement_th
                                 f"{train_accuracy:.3f} / {test_accuracy:.3f}.")
 
                 # Do SGD on a batch of training examples.
-                Batch = next(train)
-                params, opt_state = update(params, opt_state, Batch['X'], Batch['y'], agreement_threshold)
+                X, y = next(train)
+                params, opt_state = update(params, opt_state, X, y, agreement_threshold)
                 avg_params = ema_update(avg_params, params)
 
             return params, training_accs, testing_accs
@@ -288,7 +386,7 @@ def sparse_logistic_regression(train=None, test=None, adam_lr=1e-3, agreement_th
             opt = optax.chain(optax.adam(adam_lr))
 
             # Initialize network and optimiser; note we draw an input to get shapes.
-            params = avg_params = net.init(jax.random.PRNGKey(seed), next(train)['X'])
+            params = avg_params = net.init(jax.random.PRNGKey(seed), next(train)[0])
             opt_state = opt.init(params)
 
             use_ilc=False
@@ -298,11 +396,11 @@ def sparse_logistic_regression(train=None, test=None, adam_lr=1e-3, agreement_th
             for step in range(np.int(epochs)):
                 if step % np.int(epochs/10) == 0:
                     # Periodically evaluate classification accuracy on train & test sets.
-                    Batch = next(train)
-                    train_accuracy = accuracy(avg_params, Batch['X'], Batch['y'])
+                    X,y =  next(train)
+                    train_accuracy = accuracy(avg_params, X, y)
                     train_accuracy = jax.device_get(train_accuracy)
-                    Batch = next(test)
-                    test_accuracy = accuracy(avg_params, Batch['X'], Batch['y'])
+                    X, y = next(test)
+                    test_accuracy = accuracy(avg_params, X, y)
                     test_accuracy = jax.device_get(test_accuracy)
                     training_accs.append(train_accuracy)
                     testing_accs.append(test_accuracy)
@@ -311,26 +409,13 @@ def sparse_logistic_regression(train=None, test=None, adam_lr=1e-3, agreement_th
                                 f"{train_accuracy:.3f} / {test_accuracy:.3f}.")
                         
                 # Do SGD on a batch of training examples.
-                Batch = next(train)
-                params, opt_state = update(params, opt_state, Batch['X'], Batch['y'], 0.)
+                X, y = next(train)
+                params, opt_state = update(params, opt_state, X, y, 0.)
                 avg_params = ema_update(avg_params, params)
             
             return params, training_accs, testing_accs
 
 
-# Training with Adam, no reg, no ilc
-# p1 = sparse_logistic_regression(train=dataset_train, test=dataset_test, adam_lr=0.4, agreement_threshold=0.0,
-#                                use_ilc=False, l1_coef=0., l2_coef=0.,
-#                                epochs=10001, Verbose=True, training=True)
-
-# # Training with Adam, with reg, with ilc
-# p2 = sparse_logistic_regression(train=dataset_train, test=dataset_test, adam_lr=0.4, agreement_threshold=1.,
-#                                use_ilc=True, l1_coef=1e-4, l2_coef=1e-4,
-#                                epochs=10001, Verbose=True, training=True)
-
-# Compare the results with GBs derived weights
-# print(p1) # Linear Regression when SGD/Adam is used
-# print(p2) # Linear Regression when SGD/Adam is used with Reg and ILC
 
 if __name__ == "__main__":
 
@@ -338,153 +423,36 @@ if __name__ == "__main__":
 
     parser.add_argument("--path", type=str)
     parser.add_argument("--batch_size", type=int)
+    parser.add_argument("--n_classes", type=int)
+    parser.add_argument("--epochs", type=int)
     parser.add_argument("--seed", type=int)
     parser.add_argument('--use_ilc', default=False, action='store_true')
     parser.add_argument("--outname", type=str)
 
     args = parser.parse_args()
 
-    root_dir = args.path
-    batch_size = args.batch_size
-    outname = args.outname
-    use_ilc = args.use_ilc
-    seed = args.seed
+    if args.path == None:
+        root_dir = "/Users/sean/Projects/pgm-fmri/data"
+        batch_size = 2
+        outname = "testing-01"
+        use_ilc = False
+        seed = 33
+        n_classes = 2
+        epochs = 100
+
+    else:
+        root_dir = args.path
+        batch_size = args.batch_size
+        outname = args.outname
+        use_ilc = args.use_ilc
+        seed = args.seed
+        n_classes = args.n_classes
+        epochs = args.epochs
 
     print("the path is ", root_dir)
 
     tf.config.experimental.set_visible_devices([], "GPU")
 
-    X_1 = list(tf.data.Dataset.list_files(root_dir + "/V1_test/X*.npy").as_numpy_iterator())
-    X_2 = list(tf.data.Dataset.list_files(root_dir + "/V2_test/X*.npy").as_numpy_iterator())
-    X_3 = list(tf.data.Dataset.list_files(root_dir + "/V3_test/X*.npy").as_numpy_iterator())
-
-    y_1 = list(tf.data.Dataset.list_files(root_dir + "/V1_test/y*.npy").as_numpy_iterator())
-    y_2 = list(tf.data.Dataset.list_files(root_dir + "/V2_test/y*.npy").as_numpy_iterator())
-    y_3 = list(tf.data.Dataset.list_files(root_dir + "/V3_test/y*.npy").as_numpy_iterator())
-
-
-    V1 = {'X': {}, 'y':{}}
-    V2 = {'X': {}, 'y':{}}
-    V3 = {'X': {}, 'y':{}}
-
-
-    for i in range(len(X_1)):          
-        try:
-            index = int(X_1[i].decode("utf-8").split('/')[-1].split('.')[0].split('_')[-1])
-            V1['X'][index-1] = np.load(X_1[i], mmap_mode='r').astype(np.float32)
-        except:
-            print(f"An exception occurred at index {i} of V1: {X_1[i]}")
-            continue
-
-        try:
-            index = int(y_1[i].decode("utf-8").split('/')[-1].split('.')[0].split('_')[-1])        
-            V1['y'][index-1] = np.load(y_1[i], mmap_mode='r').astype(np.float32)
-        except:
-            print(f"An exception occurred at index {i} of V1: {y_1[i]}")
-            continue
-
-
-    for i in range(len(X_2)):     
-        try:
-            index = int(X_2[i].decode("utf-8").split('/')[-1].split('.')[0].split('_')[-1])
-            V2['X'][index-1] = np.load(X_2[i], mmap_mode='r').astype(np.float32)
-        except:
-             print(f"An exception occurred at index {i} of V2: {X_2[i]}")
-             continue
-        try:
-            index = int(y_2[i].decode("utf-8").split('/')[-1].split('.')[0].split('_')[-1])
-            V2['y'][index-1] = np.load(y_2[i], mmap_mode='r').astype(np.float32)
-        except:
-            print(f"An exception occurred at index {i} of V2: {y_2[i]}")
-            continue
-
-
-    for i in range(len(X_3)):
-        try:
-            index = int(X_3[i].decode("utf-8").split('/')[-1].split('.')[0].split('_')[-1])
-            V3['X'][index-1] = np.load(X_3[i], mmap_mode='r').astype(np.float32)
-        except:
-            print(f"An exception occurred at index {i} if V3: {X_3[i]}")
-            continue
-
-        try:
-            index = int(y_3[i].decode("utf-8").split('/')[-1].split('.')[0].split('_')[-1])
-            V3['y'][index-1] = np.load(y_3[i], mmap_mode='r').astype(np.float32)
-        except:
-            print(f"An exception occurred at index {i} if V3: {y_3[i]}")
-            continue
-
-
-    
-    V1_X = []
-    V2_X = []
-    V3_X = []
-
-    V1_y = []
-    V2_y = []
-    V3_y = []
-
-    for key in sorted(V1['X']):
-        try:
-            V1_X.append(V1['X'][key])
-            V1_y.append(V1['y'][key])
-        except:
-            print(f"An exception occurred for key {key} in V1.")
-            print(V1['X'][key].shape)
-            print(V1['y'][key].shape)
-            continue
-
-    for key in sorted(V2['X']):
-        try:
-            V2_X.append(V2['X'][key])
-            V2_y.append(V2['y'][key]) 
-        except:
-            print(f"An exception occurred for key {key} in V2.")
-            print(V2['X'][key].shape)
-            print(V2['y'][key].shape)
-            continue
-
-    for key in sorted(V3['X']):
-        try:
-            V3_X.append(V3['X'][key])
-            V3_y.append(V3['y'][key]) 
-        except:
-            print(f"An exception occurred for key {key} in V3.")
-            print(V3['X'][key].shape)
-            print(V3['y'][key].shape)
-            continue
-
-    V1_X = np.concatenate(V1_X, axis=0)
-    V2_X = np.concatenate(V2_X, axis=0)
-    V3_X = np.concatenate(V3_X, axis=0)
-
-    V1_y = np.concatenate(V1_y, axis=0)
-    V2_y = np.concatenate(V2_y, axis=0)
-    V3_y = np.concatenate(V3_y, axis=0)
-
-    print(V1_X.shape)
-    # print(V1_y.shape)
-
-    # print(V1_X)
-    # print(V1_y)
-
-    # remove class 0 or go_scan
-    V1_X = V1_X[(V1_y == 4) | (V1_y == 5)]
-    V2_X = V2_X[(V2_y == 4) | (V2_y == 5)]
-    V3_X = V3_X[(V3_y == 4) | (V3_y == 5)]
-
-    V1_y = V1_y[(V1_y == 4) | (V1_y == 5)]
-    V2_y = V2_y[(V2_y == 4) | (V2_y == 5)]
-    V3_y = V3_y[(V3_y == 4) | (V3_y == 5)]
-
-    # normalize data
-    V1_X = (V1_X - V1_X.mean()) / V1_X.std()
-    V2_X = (V2_X - V2_X.mean()) / V2_X.std()
-    V3_X = (V3_X - V3_X.mean()) / V3_X.std()
-
-    datasets = [tf.data.Dataset.from_tensor_slices({'X': V1_X, 'y': V1_y}),
-                tf.data.Dataset.from_tensor_slices({'X': V2_X, 'y': V2_y}),
-                tf.data.Dataset.from_tensor_slices({'X': V3_X, 'y': V3_y})]
 
     at = [0.0, 0.5, 0.9]
     ll1 = [1e-1, 1e-2, 1e-3]
@@ -493,12 +461,15 @@ if __name__ == "__main__":
     n_envs = 1
     ds_train_envs = []
     print(f"Batch size: {batch_size}")
-    ds = datasets[0].concatenate(datasets[1])
-    for m in range(n_envs):
-        ds = load_dataset("train", is_training=True, batch_size=batch_size, dataset=ds,seed=seed)
-        ds_train_envs.append(ds)
 
-    test_ds = load_dataset("test", is_training=False, batch_size=batch_size, dataset=datasets[-1], seed=seed)
+    train_years = [1,2]
+    test_years = [3]
+
+    train_ds = read_fmri_data(root_dir,train_years)
+    train_ds = load_dataset("train", is_training=True, batch_size=batch_size, seed=seed, dataset=train_ds)
+
+    test_ds = read_fmri_data(root_dir, test_years)
+    test_ds = load_dataset("test", is_training=False, batch_size=batch_size, seed=seed, dataset=test_ds)
 
     round = 0
     for idx, thresh in enumerate(at):
@@ -517,9 +488,9 @@ if __name__ == "__main__":
                 hp['testing_accuracies'] = []
                 for m in range(n_envs):
                     print('Parameters=[l1={}, l2={}, agreement={}], Environment={}'.format(l1,l2,thresh, m))
-                    params, train_accs, test_accs = sparse_logistic_regression(ds_train_envs[m], test_ds, adam_lr=1e-3, agreement_threshold=thresh,
+                    params, train_accs, test_accs = sparse_logistic_regression(train_ds, test_ds, adam_lr=1e-3, agreement_threshold=thresh,
                                             use_ilc=use_ilc, l1_coef=l1, l2_coef=l2,
-                                            epochs=10001, Verbose=True, n_classes=5, normalizer=1, seed=seed)
+                                            epochs=epochs, Verbose=True, n_classes=n_classes, normalizer=1, seed=seed)
                     envs_elastic_net_params.append(params)
                     hp['params'].append(params)
                     hp['training_accuracies'].append(train_accs)
