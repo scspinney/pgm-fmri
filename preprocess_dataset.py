@@ -1,23 +1,11 @@
 import os
 import numpy as np
-from copy import deepcopy
-
-np.set_printoptions(precision=5, suppress=True)
 import tensorflow as tf
-
 import argparse
-from typing import Any, Generator, Mapping, Tuple
-from absl import app
-import haiku as hk
-import jax
-import jax.numpy as jnp
+from typing import Any, Generator, Mapping
 import numpy as np
-import optax
-from optax._src import transform, base
-from jax import jit, grad, vmap
-from jax.tree_util import tree_structure
-import pickle
-from collections import Counter
+np.set_printoptions(precision=5, suppress=True)
+
 
 OptState = Any
 Batch = Mapping[str, np.ndarray]
