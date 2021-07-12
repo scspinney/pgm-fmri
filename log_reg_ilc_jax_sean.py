@@ -139,6 +139,7 @@ def load_dataset(
     dataset
     ) -> Generator[Batch, None, None]:
     """Loads the dataset as a generator of batches."""
+
     ds = dataset.cache().repeat()
     if is_training:
         ds = ds.shuffle(10 * batch_size, seed)
@@ -147,7 +148,22 @@ def load_dataset(
     return iter(ds.as_numpy_iterator())
 
 
+def load_binary_dataset(
+        split: str,
+        *,
+        is_training: bool,
+        batch_size: int,
+        seed: int,
+        path: str
+) -> Generator[Batch, None, None]:
+    """Loads the dataset as a generator of batches."""
+    ds = tf.data.experimental.load(path)
+    ds = ds.cache().repeat()
+    if is_training:
+        ds = ds.shuffle(10 * batch_size, seed)
+    ds = ds.batch(batch_size)
 
+    return iter(ds.as_numpy_iterator())
 
 
 # def load_dataset(
@@ -462,11 +478,12 @@ if __name__ == "__main__":
     test_years = [3]
     labels=[4,5]
 
-    train_ds = read_fmri_data(root_dir,train_years,labels)
-    train_ds = load_dataset("train", is_training=True, batch_size=batch_size, seed=seed, dataset=train_ds)
-
-    test_ds = read_fmri_data(root_dir, test_years,labels)
-    test_ds = load_dataset("test", is_training=False, batch_size=batch_size, seed=seed, dataset=test_ds)
+    #train_ds = read_fmri_data(root_dir,train_years,labels)
+    #train_ds = load_dataset("train", is_training=True, batch_size=batch_size, seed=seed, dataset=train_ds)
+    train_ds = load_binary_dataset("train", is_training=True, batch_size=batch_size, seed=seed, path="training_ds")
+    test_ds = load_binary_dataset("test", is_training=False, batch_size=batch_size, seed=seed, path="testing_ds")
+    #test_ds = read_fmri_data(root_dir, test_years,labels)
+    #test_ds = load_dataset("test", is_training=False, batch_size=batch_size, seed=seed, dataset=test_ds)
 
     round = 0
     for idx, thresh in enumerate(at):
