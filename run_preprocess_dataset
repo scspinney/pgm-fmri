@@ -1,0 +1,27 @@
+#!/bin/bash
+#SBATCH --account=def-patricia
+#SBATCH --cpus-per-task=8  # Cores proportional to GPUs: 6 on Cedar, 16 on Graham.
+#SBATCH --mem=250G       # Memory proportional to GPUs: 32000 Cedar, 64000 Graham.
+#SBATCH --time=0-4:00
+#SBATCH --output=preprocess_dataset-%N-%j.out
+
+module purge
+module load python/3.6
+module load cuda cudnn 
+
+export XLA_FLAGS=--xla_gpu_cuda_data_dir=$EBROOTCUDA
+export XLA_PYTHON_CLIENT_PREALLOCATE=false
+
+source /home/spinney/project/spinney/pgm-fmri/venv/bin/activate
+
+
+#    parser.add_argument("--path", type=str)
+#    parser.add_argument("--batch_size", type=int)
+#    parser.add_argument("--n_classes", type=int)
+#    parser.add_argument("--seed", type=int)
+#    parser.add_argument("--outname", type=str)
+#    parser.add_argument('--test_load', default=False, action='store_true')
+##    parser.add_argument('--use_subset', default=False, action='store_true')
+
+python log_reg_ilc_jax_sean.py --path "/home/spinney/scratch/fmri" --batch_size 32 --n_classes 2 --seed 333 --outname "" 
+
