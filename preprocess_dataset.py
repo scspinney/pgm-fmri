@@ -25,7 +25,7 @@ Batch = Mapping[str, np.ndarray]
 
 def make_ds(features, labels):
     ds = tf.data.Dataset.from_tensor_slices((features, labels))  # .cache()
-    # ds = ds.shuffle(BUFFER_SIZE).repeat()
+    ds = ds.shuffle(10000)
     return ds
 
 
@@ -123,8 +123,8 @@ def load_binary_dataset(
     """Loads the dataset as a generator of batches."""
     ds = tf.data.experimental.load(path)
     ds = ds.cache().repeat()
-    if is_training:
-        ds = ds.shuffle(10 * batch_size, seed)
+    # if is_training:
+    #     ds = ds.shuffle(10 * batch_size, seed)
     ds = ds.batch(batch_size)
 
     return iter(ds.as_numpy_iterator())
@@ -138,7 +138,6 @@ if __name__ == "__main__":
     parser.add_argument("--batch_size", type=int)
     parser.add_argument("--n_classes", type=int)
     parser.add_argument("--seed", type=int)
-    parser.add_argument("--outname", type=str)
     parser.add_argument('--test_load', default=False, action='store_true')
 
     args = parser.parse_args()
@@ -146,7 +145,6 @@ if __name__ == "__main__":
     if args.path == None:
         root_dir = "/Users/sean/Projects/pgm-fmri/data"
         batch_size = 2
-        outname = "testing-01"
         use_ilc = False
         seed = 33
         n_classes = 2
@@ -156,7 +154,6 @@ if __name__ == "__main__":
     else:
         root_dir = args.path
         batch_size = args.batch_size
-        outname = args.outname
         use_ilc = args.use_ilc
         seed = args.seed
         n_classes = args.n_classes
@@ -164,16 +161,6 @@ if __name__ == "__main__":
         test_load = args.test_load
 
     print("the path is ", root_dir)
-
-    tf.config.experimental.set_visible_devices([], "GPU")
-
-    at = [0.0, 0.5, 0.9]
-    ll1 = [1e-1, 1e-2, 1e-3]
-    ll2 = [1e-1, 1e-2, 1e-3]
-    all = []
-    n_envs = 1
-    ds_train_envs = []
-    print(f"Batch size: {batch_size}")
 
     train_years = [1, 2]
     test_years = [3]

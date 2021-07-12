@@ -159,8 +159,8 @@ def load_binary_dataset(
     """Loads the dataset as a generator of batches."""
     ds = tf.data.experimental.load(path)
     ds = ds.cache().repeat()
-    if is_training:
-        ds = ds.shuffle(10 * batch_size, seed)
+    # if is_training:
+    #     ds = ds.shuffle(10 * batch_size, seed)
     ds = ds.batch(batch_size)
 
     return iter(ds.as_numpy_iterator())
@@ -445,12 +445,12 @@ if __name__ == "__main__":
 
     if args.path == None:
         root_dir = "/Users/sean/Projects/pgm-fmri/data"
-        batch_size = 2
+        batch_size = 32
         outname = "testing-01"
         use_ilc = False
         seed = 33
         n_classes = 2
-        epochs = 100
+        epochs = 1000
 
     else:
         root_dir = args.path
