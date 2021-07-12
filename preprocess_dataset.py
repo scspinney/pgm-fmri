@@ -29,11 +29,15 @@ def make_ds(features, labels):
     return ds
 
 
-def process_fmri_data(root_dir, years, labels,outpath):
+def process_fmri_data(root_dir, years, labels, outpath, test=False):
     def process_year(y):
+        if test:
+            X_1 = list(tf.data.Dataset.list_files(root_dir + f"/V{y}_test/X*.npy").as_numpy_iterator())
+            y_1 = list(tf.data.Dataset.list_files(root_dir + f"/V{y}_test/y*.npy").as_numpy_iterator())
+        else:
+            X_1 = list(tf.data.Dataset.list_files(root_dir + f"/V{y}/X*.npy").as_numpy_iterator())
+            y_1 = list(tf.data.Dataset.list_files(root_dir + f"/V{y}/y*.npy").as_numpy_iterator())
 
-        X_1 = list(tf.data.Dataset.list_files(root_dir + f"/V{y}_test/X*.npy").as_numpy_iterator())
-        y_1 = list(tf.data.Dataset.list_files(root_dir + f"/V{y}_test/y*.npy").as_numpy_iterator())
         V1 = {'X': {}, 'y': {}}
 
         for i in range(len(X_1)):
@@ -140,6 +144,7 @@ if __name__ == "__main__":
     parser.add_argument("--seed", type=int)
     parser.add_argument("--outname", type=str)
     parser.add_argument('--test_load', default=False, action='store_true')
+    parser.add_argument('--use_subset', default=False, action='store_true')
 
     args = parser.parse_args()
 
@@ -152,6 +157,7 @@ if __name__ == "__main__":
         n_classes = 2
         epochs = 100
         test_load = True
+        use_subset = True
 
     else:
         root_dir = args.path
@@ -162,6 +168,7 @@ if __name__ == "__main__":
         n_classes = args.n_classes
         epochs = args.epochs
         test_load = args.test_load
+        use_subset = args.use_subset
 
     print("the path is ", root_dir)
 
@@ -179,9 +186,11 @@ if __name__ == "__main__":
     test_years = [3]
     labels = [4, 5]
 
-    train_ds = process_fmri_data(root_dir, train_years, labels, os.path.join(root_dir,"training_ds"))
+    out_train = os.path.join(root_dir,f"training_{'test' if use_subset else 'complete'}_ds")
+    train_ds = process_fmri_data(root_dir, train_years, labels, out_train,test=use_subset)
 
-    test_ds = process_fmri_data(root_dir, test_years, labels, os.path.join(root_dir,"testing_ds"))
+    out_test = os.path.join(root_dir,f"testing_{'test' if use_subset else 'complete'}_ds")
+    test_ds = process_fmri_data(root_dir, test_years, labels, out_test,test=use_subset)
 
     if test_load:
         train_ds = load_binary_dataset("train", is_training=True, batch_size=batch_size, seed=seed, path=os.path.join(root_dir,"training_ds"))
