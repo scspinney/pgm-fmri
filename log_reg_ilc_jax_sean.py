@@ -37,27 +37,20 @@ def loadData(file_name, root_dir):
 
 def make_ds(features, labels):
   ds = tf.data.Dataset.from_tensor_slices((features, labels))#.cache()
-  ds = ds.shuffle(BUFFER_SIZE).repeat()
+  #ds = ds.shuffle(BUFFER_SIZE).repeat()
   return ds
 
 
-def read_fmri_data(root_dir,years):
+def read_fmri_data(root_dir,years,labels):
 
 
     def process_year(y):
 
 
         X_1 = list(tf.data.Dataset.list_files(root_dir + f"/V{y}_test/X*.npy").as_numpy_iterator())
-        # X_2 = list(tf.data.Dataset.list_files(root_dir + "/V2_test/X*.npy").as_numpy_iterator())
-        # X_3 = list(tf.data.Dataset.list_files(root_dir + "/V3_test/X*.npy").as_numpy_iterator())
-
         y_1 = list(tf.data.Dataset.list_files(root_dir + f"/V{y}_test/y*.npy").as_numpy_iterator())
-        # y_2 = list(tf.data.Dataset.list_files(root_dir + "/V2_test/y*.npy").as_numpy_iterator())
-        # y_3 = list(tf.data.Dataset.list_files(root_dir + "/V3_test/y*.npy").as_numpy_iterator())
-
         V1 = {'X': {}, 'y': {}}
-        # V2 = {'X': {}, 'y': {}}
-        # V3 = {'X': {}, 'y': {}}
+
 
         for i in range(len(X_1)):
             try:
@@ -99,10 +92,11 @@ def read_fmri_data(root_dir,years):
 
 
         # binary classes 1 or 5
-        X_pos = X[y == 4]
-        X_neg = X[y == 5]
-        y_pos = y[y == 4]
-        y_neg = y[y == 5]
+        min_class = min(labels)
+        X_pos = X[y == labels[0]]
+        X_neg = X[y == labels[1]]
+        y_pos = y[y == labels[0]] % min_class
+        y_neg = y[y == labels[1]] % min_class
         #X = X[(y == 4) | (y == 5)]
         #y = y[(y == 4) | (y == 5)]
 
@@ -146,8 +140,8 @@ def load_dataset(
     ) -> Generator[Batch, None, None]:
     """Loads the dataset as a generator of batches."""
     ds = dataset.cache().repeat()
-    # if is_training:
-    #     ds = ds.shuffle(10 * batch_size, seed)
+    if is_training:
+        ds = ds.shuffle(10 * batch_size, seed)
     ds = ds.batch(batch_size)
 
     return iter(ds.as_numpy_iterator())
@@ -261,9 +255,11 @@ def sparse_logistic_regression(train=None, test=None, adam_lr=1e-3, agreement_th
     gradient_reg = jax.jit(grad(regularization_loss))
 
     # Evaluation metric (classification accuracy).
-    @jax.jit
+    #@jax.jit
     def accuracy(params: hk.Params, batch, label) -> jnp.ndarray:
         predictions = net.apply(params, batch)
+        print(f"{predictions}")
+        print(f"Label: {label}")
         return jnp.mean(jnp.argmax(predictions, axis=-1) == label)
    
     @jax.jit
@@ -464,11 +460,12 @@ if __name__ == "__main__":
 
     train_years = [1,2]
     test_years = [3]
+    labels=[4,5]
 
-    train_ds = read_fmri_data(root_dir,train_years)
+    train_ds = read_fmri_data(root_dir,train_years,labels)
     train_ds = load_dataset("train", is_training=True, batch_size=batch_size, seed=seed, dataset=train_ds)
 
-    test_ds = read_fmri_data(root_dir, test_years)
+    test_ds = read_fmri_data(root_dir, test_years,labels)
     test_ds = load_dataset("test", is_training=False, batch_size=batch_size, seed=seed, dataset=test_ds)
 
     round = 0
