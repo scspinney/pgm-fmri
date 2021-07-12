@@ -172,16 +172,16 @@ if __name__ == "__main__":
     train_years = [1, 2]
     test_years = [3]
     labels = [4, 5]
-
+    print(f"Processing training on labels: {labels}")
     out_train = os.path.join(root_dir,f"training_{'test' if use_subset else 'complete'}_ds")
     train_ds = process_fmri_data(root_dir, train_years, labels, out_train,test=use_subset)
-
+    print(f"Processing test...")
     out_test = os.path.join(root_dir,f"testing_{'test' if use_subset else 'complete'}_ds")
     test_ds = process_fmri_data(root_dir, test_years, labels, out_test,test=use_subset)
 
     if test_load:
-        train_ds = load_binary_dataset("train", is_training=True, batch_size=batch_size, seed=seed, path=os.path.join(root_dir,"training_ds"))
-        test_ds = load_binary_dataset("test", is_training=False, batch_size=batch_size, seed=seed, path=os.path.join(root_dir,"testing_ds"))
+        train_ds = load_binary_dataset("train", is_training=True, batch_size=batch_size, seed=seed, path=out_train)
+        test_ds = load_binary_dataset("test", is_training=False, batch_size=batch_size, seed=seed, path=out_test)
 
         # test train
         for train,test in zip(train_ds,train_ds):
